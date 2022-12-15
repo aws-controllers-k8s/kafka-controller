@@ -3,3 +3,4 @@ kind: Kustomization
 bases:
   - common
 resources:
+  - bases/kafka.services.k8s.aws_clusters.yaml

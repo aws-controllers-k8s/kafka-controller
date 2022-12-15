@@ -9,6 +9,7 @@ rules:
 - apiGroups:
   - kafka.services.k8s.aws
   resources:
+  - clusters
   verbs:
   - get
   - list

@@ -1,5 +1,30 @@
 ignore:
   resource_names:
-      - Cluster
-      - ClusterV2
-      - Configuration
+    #- Cluster
+    - ClusterV2
+    - Configuration
+resources:
+  Cluster:
+    renames:
+      operations:
+        CreateCluster:
+          input_fields:
+            ClusterName: Name
+    hooks:
+      sdk_delete_pre_build_request:
+        template_path: hooks/cluster/sdk_delete_pre_build_request.go.tpl
+    synced:
+      when:
+        - path: Status.State
+          in:
+            - ACTIVE
+    exceptions:
+      terminal_codes:
+        - BadRequestException
+    fields:
+      Tags:
+        compare:
+          is_ignored: true
+    tags:
+      # TODO(jaypipes): Ignore tags for now... we will add support later
+      ignore: true

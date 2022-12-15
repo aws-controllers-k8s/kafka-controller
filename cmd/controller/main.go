@@ -34,6 +34,8 @@ import (
 	svctypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/kafka-controller/pkg/resource"
 
+	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/cluster"
+
 	"github.com/aws-controllers-k8s/kafka-controller/pkg/version"
 )
 
