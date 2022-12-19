@@ -13,7 +13,10 @@ description: |-
   **About Amazon Kafka**
 
 
-  {ADD YOUR DESCRIPTION HERE}
+  Amazon Managed Streaming for Apache Kafka (Amazon MSK) is a fully managed AWS streaming data service makes it easy for 
+  you to build and run applications that use Apache Kafka to process streaming data without needing to become an expert 
+  in operating Apache Kafka clusters. Amazon MSK manages the provisioning, configuration, and maintenance of Apache Kafka 
+  clusters and Apache ZooKeeper nodes for you. Amazon MSK also shows key Apache Kafka performance metrics in the AWS Console.
 
 
   **About the AWS Controllers for Kubernetes**
@@ -22,13 +25,11 @@ description: |-
   This controller is a component of the [AWS Controller for Kubernetes](https://github.com/aws/aws-controllers-k8s)
   project. This project is currently in **developer preview**.
 samples:
-- kind: ExampleCustomKind
-  spec: '{}'
-- kind: SecondExampleCustomKind
+- kind: Cluster
   spec: '{}'
 maintainers:
 - name: "kafka maintainer team"
   email: "ack-maintainers@amazon.com"
 links:
 - name: Amazon Kafka Developer Resources
-  url: https://aws.amazon.com/Kafka/developer-resources/
+  url: https://aws.amazon.com/msk/resources/
