@@ -77,6 +77,9 @@ func (rm *resourceManager) sdkFind(
 	resp, err = rm.sdkapi.DescribeClusterWithContext(ctx, input)
 	rm.metrics.RecordAPICall("READ_ONE", "DescribeCluster", err)
 	if err != nil {
+		if reqErr, ok := ackerr.AWSRequestFailure(err); ok && reqErr.StatusCode() == 404 {
+			return nil, ackerr.NotFound
+		}
 		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "NotFoundException" {
 			return nil, ackerr.NotFound
 		}
@@ -152,7 +155,7 @@ func (rm *resourceManager) sdkFind(
 	if resp.ClusterInfo.ClientAuthentication != nil {
 		f2 := &svcapitypes.ClientAuthentication{}
 		if resp.ClusterInfo.ClientAuthentication.Sasl != nil {
-			f2f0 := &svcapitypes.Sasl{}
+			f2f0 := &svcapitypes.SASL{}
 			if resp.ClusterInfo.ClientAuthentication.Sasl.Iam != nil {
 				f2f0f0 := &svcapitypes.IAM{}
 				if resp.ClusterInfo.ClientAuthentication.Sasl.Iam.Enabled != nil {
@@ -161,13 +164,13 @@ func (rm *resourceManager) sdkFind(
 				f2f0.IAM = f2f0f0
 			}
 			if resp.ClusterInfo.ClientAuthentication.Sasl.Scram != nil {
-				f2f0f1 := &svcapitypes.Scram{}
+				f2f0f1 := &svcapitypes.SCRAM{}
 				if resp.ClusterInfo.ClientAuthentication.Sasl.Scram.Enabled != nil {
 					f2f0f1.Enabled = resp.ClusterInfo.ClientAuthentication.Sasl.Scram.Enabled
 				}
-				f2f0.Scram = f2f0f1
+				f2f0.SCRAM = f2f0f1
 			}
-			f2.Sasl = f2f0
+			f2.SASL = f2f0
 		}
 		if resp.ClusterInfo.ClientAuthentication.Tls != nil {
 			f2f1 := &svcapitypes.TLS{}
@@ -473,19 +476,19 @@ func (rm *resourceManager) newCreateRequestPayload(
 	}
 	if r.ko.Spec.ClientAuthentication != nil {
 		f1 := &svcsdk.ClientAuthentication{}
-		if r.ko.Spec.ClientAuthentication.Sasl != nil {
+		if r.ko.Spec.ClientAuthentication.SASL != nil {
 			f1f0 := &svcsdk.Sasl{}
-			if r.ko.Spec.ClientAuthentication.Sasl.IAM != nil {
+			if r.ko.Spec.ClientAuthentication.SASL.IAM != nil {
 				f1f0f0 := &svcsdk.Iam{}
-				if r.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled != nil {
-					f1f0f0.SetEnabled(*r.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled)
+				if r.ko.Spec.ClientAuthentication.SASL.IAM.Enabled != nil {
+					f1f0f0.SetEnabled(*r.ko.Spec.ClientAuthentication.SASL.IAM.Enabled)
 				}
 				f1f0.SetIam(f1f0f0)
 			}
-			if r.ko.Spec.ClientAuthentication.Sasl.Scram != nil {
+			if r.ko.Spec.ClientAuthentication.SASL.SCRAM != nil {
 				f1f0f1 := &svcsdk.Scram{}
-				if r.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled != nil {
-					f1f0f1.SetEnabled(*r.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled)
+				if r.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled != nil {
+					f1f0f1.SetEnabled(*r.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled)
 				}
 				f1f0.SetScram(f1f0f1)
 			}
