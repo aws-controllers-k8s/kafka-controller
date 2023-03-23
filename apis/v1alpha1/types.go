@@ -84,7 +84,7 @@ type BrokerSoftwareInfo struct {
 
 // Includes all client authentication information.
 type ClientAuthentication struct {
-	Sasl *Sasl `json:"sasl,omitempty"`
+	SASL *SASL `json:"sasl,omitempty"`
 	// Details for client authentication using TLS.
 	TLS *TLS `json:"tls,omitempty"`
 	// Contains information about unauthenticated traffic to the cluster.
@@ -431,17 +431,17 @@ type S3 struct {
 	Prefix  *string `json:"prefix,omitempty"`
 }
 
-type Sasl struct {
+type SASL struct {
 	IAM   *IAM   `json:"iam,omitempty"`
-	Scram *Scram `json:"scram,omitempty"`
+	SCRAM *SCRAM `json:"scram,omitempty"`
 }
 
-type Scram struct {
+type SCRAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // Describes the serverless cluster SASL information.
-type ServerlessSasl struct {
+type ServerlessSASL struct {
 	IAM *IAM `json:"iam,omitempty"`
 }
 
@@ -469,7 +469,7 @@ type Unauthenticated struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
-type UnprocessedScramSecret struct {
+type UnprocessedSCRAMSecret struct {
 	ErrorCode    *string `json:"errorCode,omitempty"`
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 	SecretARN    *string `json:"secretARN,omitempty"`

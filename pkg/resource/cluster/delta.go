@@ -118,28 +118,28 @@ func newResourceDelta(
 	if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication, b.ko.Spec.ClientAuthentication) {
 		delta.Add("Spec.ClientAuthentication", a.ko.Spec.ClientAuthentication, b.ko.Spec.ClientAuthentication)
 	} else if a.ko.Spec.ClientAuthentication != nil && b.ko.Spec.ClientAuthentication != nil {
-		if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.Sasl, b.ko.Spec.ClientAuthentication.Sasl) {
-			delta.Add("Spec.ClientAuthentication.Sasl", a.ko.Spec.ClientAuthentication.Sasl, b.ko.Spec.ClientAuthentication.Sasl)
-		} else if a.ko.Spec.ClientAuthentication.Sasl != nil && b.ko.Spec.ClientAuthentication.Sasl != nil {
-			if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.Sasl.IAM, b.ko.Spec.ClientAuthentication.Sasl.IAM) {
-				delta.Add("Spec.ClientAuthentication.Sasl.IAM", a.ko.Spec.ClientAuthentication.Sasl.IAM, b.ko.Spec.ClientAuthentication.Sasl.IAM)
-			} else if a.ko.Spec.ClientAuthentication.Sasl.IAM != nil && b.ko.Spec.ClientAuthentication.Sasl.IAM != nil {
-				if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled, b.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled) {
-					delta.Add("Spec.ClientAuthentication.Sasl.IAM.Enabled", a.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled, b.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled)
-				} else if a.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled != nil && b.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled != nil {
-					if *a.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled != *b.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled {
-						delta.Add("Spec.ClientAuthentication.Sasl.IAM.Enabled", a.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled, b.ko.Spec.ClientAuthentication.Sasl.IAM.Enabled)
+		if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.SASL, b.ko.Spec.ClientAuthentication.SASL) {
+			delta.Add("Spec.ClientAuthentication.SASL", a.ko.Spec.ClientAuthentication.SASL, b.ko.Spec.ClientAuthentication.SASL)
+		} else if a.ko.Spec.ClientAuthentication.SASL != nil && b.ko.Spec.ClientAuthentication.SASL != nil {
+			if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.SASL.IAM, b.ko.Spec.ClientAuthentication.SASL.IAM) {
+				delta.Add("Spec.ClientAuthentication.SASL.IAM", a.ko.Spec.ClientAuthentication.SASL.IAM, b.ko.Spec.ClientAuthentication.SASL.IAM)
+			} else if a.ko.Spec.ClientAuthentication.SASL.IAM != nil && b.ko.Spec.ClientAuthentication.SASL.IAM != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.SASL.IAM.Enabled, b.ko.Spec.ClientAuthentication.SASL.IAM.Enabled) {
+					delta.Add("Spec.ClientAuthentication.SASL.IAM.Enabled", a.ko.Spec.ClientAuthentication.SASL.IAM.Enabled, b.ko.Spec.ClientAuthentication.SASL.IAM.Enabled)
+				} else if a.ko.Spec.ClientAuthentication.SASL.IAM.Enabled != nil && b.ko.Spec.ClientAuthentication.SASL.IAM.Enabled != nil {
+					if *a.ko.Spec.ClientAuthentication.SASL.IAM.Enabled != *b.ko.Spec.ClientAuthentication.SASL.IAM.Enabled {
+						delta.Add("Spec.ClientAuthentication.SASL.IAM.Enabled", a.ko.Spec.ClientAuthentication.SASL.IAM.Enabled, b.ko.Spec.ClientAuthentication.SASL.IAM.Enabled)
 					}
 				}
 			}
-			if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.Sasl.Scram, b.ko.Spec.ClientAuthentication.Sasl.Scram) {
-				delta.Add("Spec.ClientAuthentication.Sasl.Scram", a.ko.Spec.ClientAuthentication.Sasl.Scram, b.ko.Spec.ClientAuthentication.Sasl.Scram)
-			} else if a.ko.Spec.ClientAuthentication.Sasl.Scram != nil && b.ko.Spec.ClientAuthentication.Sasl.Scram != nil {
-				if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled, b.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled) {
-					delta.Add("Spec.ClientAuthentication.Sasl.Scram.Enabled", a.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled, b.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled)
-				} else if a.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled != nil && b.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled != nil {
-					if *a.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled != *b.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled {
-						delta.Add("Spec.ClientAuthentication.Sasl.Scram.Enabled", a.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled, b.ko.Spec.ClientAuthentication.Sasl.Scram.Enabled)
+			if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.SASL.SCRAM, b.ko.Spec.ClientAuthentication.SASL.SCRAM) {
+				delta.Add("Spec.ClientAuthentication.SASL.SCRAM", a.ko.Spec.ClientAuthentication.SASL.SCRAM, b.ko.Spec.ClientAuthentication.SASL.SCRAM)
+			} else if a.ko.Spec.ClientAuthentication.SASL.SCRAM != nil && b.ko.Spec.ClientAuthentication.SASL.SCRAM != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled, b.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled) {
+					delta.Add("Spec.ClientAuthentication.SASL.SCRAM.Enabled", a.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled, b.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled)
+				} else if a.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled != nil && b.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled != nil {
+					if *a.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled != *b.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled {
+						delta.Add("Spec.ClientAuthentication.SASL.SCRAM.Enabled", a.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled, b.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled)
 					}
 				}
 			}
