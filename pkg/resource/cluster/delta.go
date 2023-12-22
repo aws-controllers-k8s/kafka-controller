@@ -53,8 +53,12 @@ func newResourceDelta(
 				delta.Add("Spec.BrokerNodeGroupInfo.BrokerAZDistribution", a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution, b.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution)
 			}
 		}
-		if !ackcompare.SliceStringPEqual(a.ko.Spec.BrokerNodeGroupInfo.ClientSubnets, b.ko.Spec.BrokerNodeGroupInfo.ClientSubnets) {
+		if len(a.ko.Spec.BrokerNodeGroupInfo.ClientSubnets) != len(b.ko.Spec.BrokerNodeGroupInfo.ClientSubnets) {
 			delta.Add("Spec.BrokerNodeGroupInfo.ClientSubnets", a.ko.Spec.BrokerNodeGroupInfo.ClientSubnets, b.ko.Spec.BrokerNodeGroupInfo.ClientSubnets)
+		} else if len(a.ko.Spec.BrokerNodeGroupInfo.ClientSubnets) > 0 {
+			if !ackcompare.SliceStringPEqual(a.ko.Spec.BrokerNodeGroupInfo.ClientSubnets, b.ko.Spec.BrokerNodeGroupInfo.ClientSubnets) {
+				delta.Add("Spec.BrokerNodeGroupInfo.ClientSubnets", a.ko.Spec.BrokerNodeGroupInfo.ClientSubnets, b.ko.Spec.BrokerNodeGroupInfo.ClientSubnets)
+			}
 		}
 		if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo) {
 			delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo)
@@ -78,8 +82,12 @@ func newResourceDelta(
 				delta.Add("Spec.BrokerNodeGroupInfo.InstanceType", a.ko.Spec.BrokerNodeGroupInfo.InstanceType, b.ko.Spec.BrokerNodeGroupInfo.InstanceType)
 			}
 		}
-		if !ackcompare.SliceStringPEqual(a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups, b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups) {
+		if len(a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups) != len(b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups) {
 			delta.Add("Spec.BrokerNodeGroupInfo.SecurityGroups", a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups, b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups)
+		} else if len(a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups) > 0 {
+			if !ackcompare.SliceStringPEqual(a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups, b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups) {
+				delta.Add("Spec.BrokerNodeGroupInfo.SecurityGroups", a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups, b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups)
+			}
 		}
 		if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.StorageInfo, b.ko.Spec.BrokerNodeGroupInfo.StorageInfo) {
 			delta.Add("Spec.BrokerNodeGroupInfo.StorageInfo", a.ko.Spec.BrokerNodeGroupInfo.StorageInfo, b.ko.Spec.BrokerNodeGroupInfo.StorageInfo)
@@ -147,8 +155,12 @@ func newResourceDelta(
 		if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.TLS, b.ko.Spec.ClientAuthentication.TLS) {
 			delta.Add("Spec.ClientAuthentication.TLS", a.ko.Spec.ClientAuthentication.TLS, b.ko.Spec.ClientAuthentication.TLS)
 		} else if a.ko.Spec.ClientAuthentication.TLS != nil && b.ko.Spec.ClientAuthentication.TLS != nil {
-			if !ackcompare.SliceStringPEqual(a.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList, b.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList) {
+			if len(a.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList) != len(b.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList) {
 				delta.Add("Spec.ClientAuthentication.TLS.CertificateAuthorityARNList", a.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList, b.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList)
+			} else if len(a.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList) > 0 {
+				if !ackcompare.SliceStringPEqual(a.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList, b.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList) {
+					delta.Add("Spec.ClientAuthentication.TLS.CertificateAuthorityARNList", a.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList, b.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList)
+				}
 			}
 			if ackcompare.HasNilDifference(a.ko.Spec.ClientAuthentication.TLS.Enabled, b.ko.Spec.ClientAuthentication.TLS.Enabled) {
 				delta.Add("Spec.ClientAuthentication.TLS.Enabled", a.ko.Spec.ClientAuthentication.TLS.Enabled, b.ko.Spec.ClientAuthentication.TLS.Enabled)
