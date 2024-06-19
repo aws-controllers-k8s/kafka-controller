@@ -40,6 +40,7 @@ import (
 	svcsdk "github.com/aws/aws-sdk-go/service/kafka"
 
 	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/cluster"
+	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/configuration"
 
 	"github.com/aws-controllers-k8s/kafka-controller/pkg/version"
 )

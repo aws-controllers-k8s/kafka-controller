@@ -51,6 +51,26 @@ rules:
   - patch
   - update
 - apiGroups:
+  - kafka.services.k8s.aws
+  resources:
+  - configurations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kafka.services.k8s.aws
+  resources:
+  - configurations/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - services.k8s.aws
   resources:
   - adoptedresources

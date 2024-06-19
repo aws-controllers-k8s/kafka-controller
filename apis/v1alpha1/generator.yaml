@@ -2,8 +2,15 @@ ignore:
   resource_names:
     #- Cluster
     - ClusterV2
-    - Configuration
+    #- Configuration
 resources:
+  Configuration:
+    fields:
+      Tags:
+        compare:
+          is_ignored: true
+    tags:
+      ignore: true
   Cluster:
     renames:
       operations:
