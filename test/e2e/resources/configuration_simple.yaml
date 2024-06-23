@@ -1,0 +1,9 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Configuration
+metadata:
+  name: $CONFIG_NAME
+spec:
+  name: $CONFIG_NAME
+  kafkaVersions:
+    - "2.8.0"
+  serverProperties: YXV0by5jcmVhdGUudG9waWNzLmVuYWJsZSA9IHRydWUKCnpvb2tlZXBlci5jb25uZWN0aW9uLnRpbWVvdXQubXMgPSAxMDAwCgpsb2cucm9sbC5tcyA9IDYwNDgwMDAwMA==

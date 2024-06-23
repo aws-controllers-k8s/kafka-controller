@@ -1,1 +1,2 @@
-CLUSTER_RESOURCE_PLURAL = 'clusters'
+CLUSTER_RESOURCE_PLURAL = "clusters"
+CONFIG_RESOURCE_PLURAL = "configurations"
