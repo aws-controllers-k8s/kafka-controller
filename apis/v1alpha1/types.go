@@ -180,15 +180,6 @@ type CompatibleKafkaVersion struct {
 	TargetVersions []*string `json:"targetVersions,omitempty"`
 }
 
-// Represents an MSK Configuration.
-type Configuration struct {
-	ARN           *string      `json:"arn,omitempty"`
-	CreationTime  *metav1.Time `json:"creationTime,omitempty"`
-	Description   *string      `json:"description,omitempty"`
-	KafkaVersions []*string    `json:"kafkaVersions,omitempty"`
-	Name          *string      `json:"name,omitempty"`
-}
-
 // Specifies the configuration to use for the brokers.
 type ConfigurationInfo struct {
 	ARN      *string `json:"arn,omitempty"`
@@ -200,6 +191,19 @@ type ConfigurationRevision struct {
 	CreationTime *metav1.Time `json:"creationTime,omitempty"`
 	Description  *string      `json:"description,omitempty"`
 	Revision     *int64       `json:"revision,omitempty"`
+}
+
+// Represents an MSK Configuration.
+type Configuration_SDK struct {
+	ARN           *string      `json:"arn,omitempty"`
+	CreationTime  *metav1.Time `json:"creationTime,omitempty"`
+	Description   *string      `json:"description,omitempty"`
+	KafkaVersions []*string    `json:"kafkaVersions,omitempty"`
+	// Describes a configuration revision.
+	LatestRevision *ConfigurationRevision `json:"latestRevision,omitempty"`
+	Name           *string                `json:"name,omitempty"`
+	// The state of a configuration.
+	State *string `json:"state,omitempty"`
 }
 
 // Information about the broker access configuration.
