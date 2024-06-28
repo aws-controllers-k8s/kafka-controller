@@ -24,20 +24,11 @@ from acktest.resources import random_suffix_name
 from e2e import service_marker, CRD_GROUP, CRD_VERSION, load_resource
 from e2e.common.types import CONFIG_RESOURCE_PLURAL
 from e2e.replacement_values import REPLACEMENT_VALUES
+from e2e.configuration import wait_until_deleted, get_by_arn
 
 CREATE_WAIT_SECONDS = 10
 MODIFY_WAIT_SECONDS = 10
-DELETE_WAIT_SECONDS = 10
-
-
-def get_by_arn(config_arn):
-    c = boto3.client("kafka")
-    try:
-        resp = c.describe_configuration(Arn=config_arn)
-        return resp
-    except c.exceptions.BadRequestException:
-        return None
-
+DELETE_WAIT_SECONDS = 30
 
 @pytest.fixture(scope="module")
 def simple_config():
@@ -105,7 +96,8 @@ class TestConfiguration:
         # delete the CR
         _, deleted = k8s.delete_custom_resource(ref, 2, 5)
         assert deleted
-        time.sleep(DELETE_WAIT_SECONDS)
+        
+        wait_until_deleted(config_arn)
 
         latest = get_by_arn(config_arn)
         assert latest is None
