@@ -327,6 +327,16 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Spec.Tags = nil
 	}
+	if resp.ClusterInfo.ZookeeperConnectString != nil {
+		ko.Status.ZookeeperConnectString = resp.ClusterInfo.ZookeeperConnectString
+	} else {
+		ko.Status.ZookeeperConnectString = nil
+	}
+	if resp.ClusterInfo.ZookeeperConnectStringTls != nil {
+		ko.Status.ZookeeperConnectStringTLS = resp.ClusterInfo.ZookeeperConnectStringTls
+	} else {
+		ko.Status.ZookeeperConnectStringTLS = nil
+	}
 
 	rm.setStatusDefaults(ko)
 	return &resource{ko}, nil

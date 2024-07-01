@@ -74,6 +74,10 @@ type ClusterStatus struct {
 	// FAILED, HEALING, MAINTENANCE, REBOOTING_BROKER, and UPDATING.
 	// +kubebuilder:validation:Optional
 	State *string `json:"state,omitempty"`
+	// +kubebuilder:validation:Optional
+	ZookeeperConnectString *string `json:"zookeeperConnectString,omitempty"`
+	// +kubebuilder:validation:Optional
+	ZookeeperConnectStringTLS *string `json:"zookeeperConnectStringTLS,omitempty"`
 }
 
 // Cluster is the Schema for the Clusters API

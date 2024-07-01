@@ -32,6 +32,12 @@ resources:
       Tags:
         compare:
           is_ignored: true
+      ZookeeperConnectString:
+        type: string
+        is_read_only: true
+      ZookeeperConnectStringTls:
+        type: string
+        is_read_only: true
     tags:
       # TODO(jaypipes): Ignore tags for now... we will add support later
       ignore: true
