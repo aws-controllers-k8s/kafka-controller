@@ -119,30 +119,38 @@ func (rm *resourceManager) customUpdate(
 	exit := rlog.Trace("rm.customUpdate")
 	defer exit(err)
 
+	// For asynchronous updates, latest(from ReadOne) contains the
+	// outdate values for Spec fields. However the status(Cluster status)
+	// is correct inside latest.
+	// So we construct the updatedRes object from the desired resource to
+	// obtain correct spec fields and then copy the status from latest.
+	updatedRes := rm.concreteResource(desired.DeepCopy())
+	updatedRes.SetStatus(latest)
+
 	if clusterDeleting(latest) {
 		msg := "Cluster is currently being deleted"
-		ackcondition.SetSynced(desired, corev1.ConditionFalse, &msg, nil)
-		return desired, requeueWaitWhileDeleting
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &msg, nil)
+		return updatedRes, requeueWaitWhileDeleting
 	}
 
 	if !clusterActive(latest) {
 		msg := "Cluster is in '" + *latest.ko.Status.State + "' state"
-		ackcondition.SetSynced(desired, corev1.ConditionFalse, &msg, nil)
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &msg, nil)
 		if clusterHasTerminalStatus(latest) {
-			ackcondition.SetTerminal(desired, corev1.ConditionTrue, &msg, nil)
-			return desired, nil
+			ackcondition.SetTerminal(updatedRes, corev1.ConditionTrue, &msg, nil)
+			return updatedRes, nil
 		}
-		return desired, requeueWaitUntilCanModify(latest)
+		return updatedRes, requeueWaitUntilCanModify(latest)
 	}
 
 	if delta.DifferentAt("Spec.AssociatedSCRAMSecrets") {
-		err = rm.syncAssociatedScramSecrets(ctx, desired, latest)
+		err = rm.syncAssociatedScramSecrets(ctx, updatedRes, latest)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return desired, nil
+	return updatedRes, nil
 }
 
 // syncAssociatedScramSecrets examines the Secret ARNs in the supplied Cluster
