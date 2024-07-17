@@ -117,7 +117,7 @@ func (rm *resourceManager) customUpdate(
 ) (updated *resource, err error) {
 	rlog := ackrtlog.FromContext(ctx)
 	exit := rlog.Trace("rm.customUpdate")
-	defer exit(err)
+	defer func() { exit(err) }()
 
 	// For asynchronous updates, latest(from ReadOne) contains the
 	// outdate values for Spec fields. However the status(Cluster status)

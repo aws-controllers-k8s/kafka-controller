@@ -35,6 +35,9 @@ CREATE_WAIT_AFTER_SECONDS = 180
 DELETE_WAIT_SECONDS = 30
 MODIFY_WAIT_AFTER_SECONDS = 10
 
+# Time to wait after the cluster has changed status, for the CR to update
+CHECK_STATUS_WAIT_SECONDS = 60
+
 
 @pytest.fixture(scope="module")
 def simple_cluster():
@@ -45,8 +48,8 @@ def simple_cluster():
     subnet_id_1 = vpc.public_subnets.subnet_ids[0]
     subnet_id_2 = vpc.public_subnets.subnet_ids[1]
     global secret_1, secret_2
-    secret_1 = resources.AssociatedSCRAMSecrets[0]
-    secret_2 = resources.AssociatedSCRAMSecrets[1]
+    secret_1 = resources.SCRAMSecret1.arn
+    secret_2 = resources.SCRAMSecret2.arn
 
     replacements = REPLACEMENT_VALUES.copy()
     replacements["CLUSTER_NAME"] = cluster_name
@@ -113,14 +116,17 @@ class TestCluster:
             cluster.state_matches("ACTIVE"),
         )
 
+        # ensure status is updated properly once it has become active
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
         latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 1
         assert secret_1 in latest_secrets
 
         # associate one more secret to the cluster
-        secrets = f'["{secret_1}","{secret_2}"]'
         updates = {
-            "spec": {"associatedSCRAMSecrets": secrets},
+            "spec": {"associatedSCRAMSecrets": [secret_1, secret_2]},
         }
         k8s.patch_custom_resource(ref, updates)
         time.sleep(MODIFY_WAIT_AFTER_SECONDS)
@@ -131,7 +137,7 @@ class TestCluster:
 
         # remove all associated secrets
         updates = {
-            "spec": {"associatedSCRAMSecrets": "[]"},
+            "spec": {"associatedSCRAMSecrets": []},
         }
         k8s.patch_custom_resource(ref, updates)
         time.sleep(MODIFY_WAIT_AFTER_SECONDS)
@@ -140,8 +146,6 @@ class TestCluster:
         assert len(latest_secrets) == 0
 
 
-#        # ACK.ResourceSynced=True when State=ACTIVE...
-#        condition.assert_synced(ref)
 #
 #        # update code path check for tags...
 #        latest_tags = cluster.get_tags(cluster_name)

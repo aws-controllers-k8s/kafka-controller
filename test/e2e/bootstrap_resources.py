@@ -15,7 +15,6 @@
 for them.
 """
 
-from typing import List
 from dataclasses import dataclass
 from acktest.bootstrapping import Resources
 from acktest.bootstrapping.vpc import VPC
@@ -26,7 +25,8 @@ from e2e import bootstrap_directory
 @dataclass
 class BootstrapResources(Resources):
     ClusterVPC: VPC
-    AssociatedSCRAMSecrets: List[Secret]
+    SCRAMSecret1: Secret
+    SCRAMSecret2: Secret
 
 
 _bootstrap_resources = None

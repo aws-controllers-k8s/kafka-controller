@@ -29,16 +29,14 @@ def service_bootstrap() -> Resources:
         ClusterVPC=VPC(
             name_prefix="cluster-vpc", num_public_subnet=2, num_private_subnet=2
         ),
-        AssociatedSCRAMSecrets=[
-            Secret(
-                name_prefix="AmazonMSK_",
-                plain_text='{"username":"test_user_1","password":"test_password_1"}',
-            ),
-            Secret(
-                name_prefix="AmazonMSK_",
-                plain_text='{"username":"test_user_2","password":"test_password_2"}',
-            ),
-        ],
+        SCRAMSecret1=Secret(
+            name_prefix="AmazonMSK_",
+            plain_text='{"username":"test_user_1","password":"test_password_1"}',
+        ),
+        SCRAMSecret2=Secret(
+            name_prefix="AmazonMSK_",
+            plain_text='{"username":"test_user_2","password":"test_password_2"}',
+        ),
     )
 
     try:
