@@ -4,7 +4,7 @@
 # not use this file except in compliance with the License. A copy of the
 # License is located at
 #
-#	 http://aws.amazon.com/apache2.0/
+# 	 http://aws.amazon.com/apache2.0/
 #
 # or in the "license" file accompanying this file. This file is distributed
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
@@ -44,11 +44,15 @@ def simple_cluster():
     vpc = resources.ClusterVPC
     subnet_id_1 = vpc.public_subnets.subnet_ids[0]
     subnet_id_2 = vpc.public_subnets.subnet_ids[1]
+    global secret_1, secret_2
+    secret_1 = resources.AssociatedSCRAMSecrets[0]
+    secret_2 = resources.AssociatedSCRAMSecrets[1]
 
     replacements = REPLACEMENT_VALUES.copy()
-    replacements['CLUSTER_NAME'] = cluster_name
-    replacements['SUBNET_ID_1'] = subnet_id_1
-    replacements['SUBNET_ID_2'] = subnet_id_2
+    replacements["CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_id_1
+    replacements["SUBNET_ID_2"] = subnet_id_2
+    replacements["SECRET_ARN"] = secret_1
 
     resource_data = load_resource(
         "cluster_simple",
@@ -56,8 +60,11 @@ def simple_cluster():
     )
 
     ref = k8s.CustomResourceReference(
-        CRD_GROUP, CRD_VERSION, CLUSTER_RESOURCE_PLURAL,
-        cluster_name, namespace="default",
+        CRD_GROUP,
+        CRD_VERSION,
+        CLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
     )
     k8s.create_custom_resource(ref, resource_data)
     cr = k8s.wait_resource_consumed_by_controller(ref)
@@ -92,19 +99,46 @@ class TestCluster:
         # Create call.
         cr = k8s.get_resource(ref)
 
-        assert 'status' in cr
-        assert 'ackResourceMetadata' in cr['status']
-        assert 'arn' in cr['status']['ackResourceMetadata']
-        cluster_arn = cr['status']['ackResourceMetadata']['arn']
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
 
         latest = cluster.get_by_arn(cluster_arn)
         assert latest is not None
-        assert 'State' in latest
+        assert "State" in latest
 
         cluster.wait_until(
             cluster_arn,
-            cluster.state_matches('ACTIVE'),
+            cluster.state_matches("ACTIVE"),
         )
+
+        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        assert len(latest_secrets) == 1
+        assert secret_1 in latest_secrets
+
+        # associate one more secret to the cluster
+        secrets = f'["{secret_1}","{secret_2}"]'
+        updates = {
+            "spec": {"associatedSCRAMSecrets": secrets},
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+
+        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        assert len(latest_secrets) == 2
+        assert secret_1 in latest_secrets and secret_2 in latest_secrets
+
+        # remove all associated secrets
+        updates = {
+            "spec": {"associatedSCRAMSecrets": "[]"},
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+
+        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        assert len(latest_secrets) == 0
+
 
 #        # ACK.ResourceSynced=True when State=ACTIVE...
 #        condition.assert_synced(ref)
