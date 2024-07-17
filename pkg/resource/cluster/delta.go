@@ -43,6 +43,16 @@ func newResourceDelta(
 		return delta
 	}
 
+	if !reflect.DeepEqual(a.ko.Spec.AssociatedSCRAMSecretRefs, b.ko.Spec.AssociatedSCRAMSecretRefs) {
+		delta.Add("Spec.AssociatedSCRAMSecretRefs", a.ko.Spec.AssociatedSCRAMSecretRefs, b.ko.Spec.AssociatedSCRAMSecretRefs)
+	}
+	if len(a.ko.Spec.AssociatedSCRAMSecrets) != len(b.ko.Spec.AssociatedSCRAMSecrets) {
+		delta.Add("Spec.AssociatedSCRAMSecrets", a.ko.Spec.AssociatedSCRAMSecrets, b.ko.Spec.AssociatedSCRAMSecrets)
+	} else if len(a.ko.Spec.AssociatedSCRAMSecrets) > 0 {
+		if !ackcompare.SliceStringPEqual(a.ko.Spec.AssociatedSCRAMSecrets, b.ko.Spec.AssociatedSCRAMSecrets) {
+			delta.Add("Spec.AssociatedSCRAMSecrets", a.ko.Spec.AssociatedSCRAMSecrets, b.ko.Spec.AssociatedSCRAMSecrets)
+		}
+	}
 	if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo, b.ko.Spec.BrokerNodeGroupInfo) {
 		delta.Add("Spec.BrokerNodeGroupInfo", a.ko.Spec.BrokerNodeGroupInfo, b.ko.Spec.BrokerNodeGroupInfo)
 	} else if a.ko.Spec.BrokerNodeGroupInfo != nil && b.ko.Spec.BrokerNodeGroupInfo != nil {

@@ -18,8 +18,16 @@ resources:
           input_fields:
             ClusterName: Name
     hooks:
+      sdk_read_one_post_set_output:
+        template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
+      sdk_create_post_set_output:
+        template_path: hooks/cluster/sdk_create_post_set_output.go.tpl
+      sdk_update_pre_build_request:
+        template_path: hooks/cluster/sdk_update_pre_build_request.go.tpl
       sdk_delete_pre_build_request:
         template_path: hooks/cluster/sdk_delete_pre_build_request.go.tpl
+    update_operation:
+      custom_method_name: customUpdate
     synced:
       when:
         - path: Status.State
@@ -29,6 +37,15 @@ resources:
       terminal_codes:
         - BadRequestException
     fields:
+      # In order to support associating zero or more scram secrets to a cluster, we use
+      # custom update code path that uses the BatchAssociate/BatchDisassociateScramSecret API
+      # calls to manage the set of SecretARNs associated to this Cluster.
+      AssociatedScramSecrets:
+        type: "[]*string"
+        references:
+          resource: Secret
+          service_name: secretsmanager
+          path: Status.ACKResourceMetadata.ARN
       Tags:
         compare:
           is_ignored: true

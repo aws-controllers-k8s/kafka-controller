@@ -25,7 +25,8 @@ import (
 // Returns information about a cluster of either the provisioned or the serverless
 // type.
 type ClusterSpec struct {
-
+	AssociatedSCRAMSecretRefs []*ackv1alpha1.AWSResourceReferenceWrapper `json:"associatedSCRAMSecretRefs,omitempty"`
+	AssociatedSCRAMSecrets    []*string                                  `json:"associatedSCRAMSecrets,omitempty"`
 	// Information about the brokers.
 	// +kubebuilder:validation:Required
 	BrokerNodeGroupInfo *BrokerNodeGroupInfo `json:"brokerNodeGroupInfo"`

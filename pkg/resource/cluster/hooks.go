@@ -14,11 +14,17 @@
 package cluster
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
+	ackcondition "github.com/aws-controllers-k8s/runtime/pkg/condition"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
+	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
+	ackutil "github.com/aws-controllers-k8s/runtime/pkg/util"
 	svcsdk "github.com/aws/aws-sdk-go/service/kafka"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -32,11 +38,11 @@ var (
 
 var (
 	requeueWaitWhileDeleting = ackrequeue.NeededAfter(
-		errors.New("Cluster in 'DELETING' state, cannot be modified or deleted."),
+		fmt.Errorf("cluster in '%s' state, cannot be modified or deleted", svcsdk.ClusterStateDeleting),
 		ackrequeue.DefaultRequeueAfterDuration,
 	)
 	requeueWaitWhileCreating = ackrequeue.NeededAfter(
-		errors.New("Cluster in 'CREATING' state, cannot be modified or deleted."),
+		fmt.Errorf("cluster in '%s' state, cannot be modified or deleted", svcsdk.ClusterStateCreating),
 		ackrequeue.DefaultRequeueAfterDuration,
 	)
 )
@@ -101,4 +107,153 @@ func clusterDeleting(r *resource) bool {
 	}
 	cs := *r.ko.Status.State
 	return cs == svcsdk.ClusterStateDeleting
+}
+
+func (rm *resourceManager) customUpdate(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+	delta *ackcompare.Delta,
+) (updated *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.customUpdate")
+	defer exit(err)
+
+	if clusterDeleting(latest) {
+		msg := "Cluster is currently being deleted"
+		ackcondition.SetSynced(desired, corev1.ConditionFalse, &msg, nil)
+		return desired, requeueWaitWhileDeleting
+	}
+
+	if !clusterActive(latest) {
+		msg := "Cluster is in '" + *latest.ko.Status.State + "' state"
+		ackcondition.SetSynced(desired, corev1.ConditionFalse, &msg, nil)
+		if clusterHasTerminalStatus(latest) {
+			ackcondition.SetTerminal(desired, corev1.ConditionTrue, &msg, nil)
+			return desired, nil
+		}
+		return desired, requeueWaitUntilCanModify(latest)
+	}
+
+	if delta.DifferentAt("Spec.AssociatedSCRAMSecrets") {
+		err = rm.syncAssociatedScramSecrets(ctx, desired, latest)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return desired, nil
+}
+
+// syncAssociatedScramSecrets examines the Secret ARNs in the supplied Cluster
+// and calls the ListScramSecrets, BatchAssociateScramSecrets and
+// BatchDisassciateScramSecret APIs to ensure that the set of assciacted secrets stays in
+// sync with the Cluster.Spec.AssociatedScramSecrets field, which is a list of strings
+// containing Secret ARNs.
+func (rm *resourceManager) syncAssociatedScramSecrets(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.syncAssociatedScramSecrets")
+	defer func() { exit(err) }()
+	toAdd := []*string{}
+	toDelete := []*string{}
+
+	existingPolicies := latest.ko.Spec.AssociatedSCRAMSecrets
+
+	for _, p := range desired.ko.Spec.AssociatedSCRAMSecrets {
+		if !ackutil.InStringPs(*p, existingPolicies) {
+			toAdd = append(toAdd, p)
+		}
+	}
+
+	for _, p := range existingPolicies {
+		if !ackutil.InStringPs(*p, desired.ko.Spec.AssociatedSCRAMSecrets) {
+			toDelete = append(toDelete, p)
+		}
+	}
+
+	if len(toAdd) > 0 {
+		rlog.Debug("associate scram secrets to cluster", "secret_arn", toAdd)
+		if err = rm.batchAssociateScramSecret(ctx, desired, toAdd); err != nil {
+			return err
+		}
+	}
+
+	if len(toDelete) > 0 {
+		rlog.Debug("disassociate scram secrets from cluster", "secret_arn", toDelete)
+		if err = rm.batchDisassociateScramSecret(ctx, desired, toDelete); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getAssociatedScramSecrets returns the list of scram secrets currently
+// associated with the Cluster
+func (rm *resourceManager) getAssociatedScramSecrets(
+	ctx context.Context,
+	r *resource,
+) ([]*string, error) {
+	var err error
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.getAssociatedScramSecrets")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.ListScramSecretsInput{}
+	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
+	res := []*string{}
+
+	err = rm.sdkapi.ListScramSecretsPagesWithContext(
+		ctx, input, func(page *svcsdk.ListScramSecretsOutput, _ bool) bool {
+			if page == nil {
+				return true
+			}
+			res = append(res, page.SecretArnList...)
+			return page.NextToken != nil
+		},
+	)
+	rm.metrics.RecordAPICall("READ_MANY", "ListScramSecrets", err)
+	return res, err
+}
+
+// batchAssociateScramSecret associates the supplied scram secrets to the supplied Cluster
+// resource
+func (rm *resourceManager) batchAssociateScramSecret(
+	ctx context.Context,
+	r *resource,
+	secretARNs []*string,
+) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.associateScramSecret")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.BatchAssociateScramSecretInput{}
+	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
+	input.SecretArnList = secretARNs
+	_, err = rm.sdkapi.BatchAssociateScramSecretWithContext(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "BatchAssociateScramSecret", err)
+	return err
+}
+
+// batchDisassociateScramSecret disassociates the supplied scram secrets from the supplied
+// Cluster resource
+func (rm *resourceManager) batchDisassociateScramSecret(
+	ctx context.Context,
+	r *resource,
+	secretARNs []*string,
+) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.disassociateScramSecret")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.BatchDisassociateScramSecretInput{}
+	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
+	input.SecretArnList = secretARNs
+	_, err = rm.sdkapi.BatchDisassociateScramSecretWithContext(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "BatchDisassociateScramSecret", err)
+	return err
 }

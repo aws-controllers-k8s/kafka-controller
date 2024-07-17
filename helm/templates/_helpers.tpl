@@ -118,6 +118,20 @@ rules:
   - patch
   - update
 - apiGroups:
+  - secretsmanager.services.k8s.aws
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - secretsmanager.services.k8s.aws
+  resources:
+  - secrets/status
+  verbs:
+  - get
+  - list
+- apiGroups:
   - services.k8s.aws
   resources:
   - adoptedresources
