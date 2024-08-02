@@ -4,6 +4,12 @@ metadata:
   name: $CLUSTER_NAME
 spec:
   name: $CLUSTER_NAME
+  clientAuthentication:
+    sasl:
+      scram:
+        enabled: true
+  associatedSCRAMSecrets:
+    - $SECRET_ARN
   brokerNodeGroupInfo:
     instanceType: "kafka.t3.small"
     # NOTE(jaypipes): Clusters require at least 2 subnets.

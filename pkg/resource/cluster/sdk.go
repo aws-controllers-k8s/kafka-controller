@@ -339,6 +339,17 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
+	if !clusterActive(&resource{ko}) {
+		// Setting resource synced condition to false will trigger a requeue of
+		// the resource. No need to return a requeue error here.
+		ackcondition.SetSynced(&resource{ko}, corev1.ConditionFalse, nil, nil)
+	} else {
+		ackcondition.SetSynced(&resource{ko}, corev1.ConditionTrue, nil, nil)
+		ko.Spec.AssociatedSCRAMSecrets, err = rm.getAssociatedScramSecrets(ctx, &resource{ko})
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &resource{ko}, nil
 }
 
@@ -413,6 +424,12 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
+	if !clusterActive(&resource{ko}) {
+		// This causes a requeue and scram secrets will be synced on the next
+		// reconciliation loop
+		ackcondition.SetSynced(&resource{ko}, corev1.ConditionFalse, nil, nil)
+		return &resource{ko}, nil
+	}
 	return &resource{ko}, nil
 }
 
@@ -659,7 +676,7 @@ func (rm *resourceManager) sdkUpdate(
 	latest *resource,
 	delta *ackcompare.Delta,
 ) (*resource, error) {
-	return nil, ackerr.NewTerminalError(ackerr.NotImplemented)
+	return rm.customUpdate(ctx, desired, latest, delta)
 }
 
 // sdkDelete deletes the supplied resource in the backend AWS service API
@@ -677,6 +694,11 @@ func (rm *resourceManager) sdkDelete(
 	}
 	if clusterCreating(r) {
 		return nil, requeueWaitWhileCreating
+	}
+	groupCpy := r.ko.DeepCopy()
+	groupCpy.Spec.AssociatedSCRAMSecrets = nil
+	if err := rm.syncAssociatedScramSecrets(ctx, &resource{ko: groupCpy}, r); err != nil {
+		return nil, err
 	}
 
 	input, err := rm.newDeleteRequestPayload(r)
