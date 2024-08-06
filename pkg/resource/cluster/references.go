@@ -60,12 +60,11 @@ func (rm *resourceManager) ResolveReferences(
 	apiReader client.Reader,
 	res acktypes.AWSResource,
 ) (acktypes.AWSResource, bool, error) {
-	namespace := res.MetaObject().GetNamespace()
 	ko := rm.concreteResource(res).ko
 
 	resourceHasReferences := false
 	err := validateReferenceFields(ko)
-	if fieldHasReferences, err := rm.resolveReferenceForAssociatedSCRAMSecrets(ctx, apiReader, namespace, ko); err != nil {
+	if fieldHasReferences, err := rm.resolveReferenceForAssociatedSCRAMSecrets(ctx, apiReader, ko); err != nil {
 		return &resource{ko}, (resourceHasReferences || fieldHasReferences), err
 	} else {
 		resourceHasReferences = resourceHasReferences || fieldHasReferences
@@ -91,7 +90,6 @@ func validateReferenceFields(ko *svcapitypes.Cluster) error {
 func (rm *resourceManager) resolveReferenceForAssociatedSCRAMSecrets(
 	ctx context.Context,
 	apiReader client.Reader,
-	namespace string,
 	ko *svcapitypes.Cluster,
 ) (hasReferences bool, err error) {
 	for _, f0iter := range ko.Spec.AssociatedSCRAMSecretRefs {
@@ -100,6 +98,10 @@ func (rm *resourceManager) resolveReferenceForAssociatedSCRAMSecrets(
 			arr := f0iter.From
 			if arr.Name == nil || *arr.Name == "" {
 				return hasReferences, fmt.Errorf("provided resource reference is nil or empty: AssociatedSCRAMSecretRefs")
+			}
+			namespace := ko.ObjectMeta.GetNamespace()
+			if arr.Namespace != nil && *arr.Namespace != "" {
+				namespace = *arr.Namespace
 			}
 			obj := &secretsmanagerapitypes.Secret{}
 			if err := getReferencedResourceState_Secret(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
