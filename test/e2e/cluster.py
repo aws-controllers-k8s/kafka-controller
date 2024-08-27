@@ -23,12 +23,12 @@ import pytest
 # Creating MSK Clusters often takes >25 minutes...
 DEFAULT_WAIT_UNTIL_TIMEOUT_SECONDS = 60 * 35
 DEFAULT_WAIT_UNTIL_INTERVAL_SECONDS = 15
-DEFAULT_WAIT_UNTIL_EXISTS_TIMEOUT_SECONDS = 60 * 10
+DEFAULT_WAIT_UNTIL_EXISTS_TIMEOUT_SECONDS = 60 * 30
 DEFAULT_WAIT_UNTIL_EXISTS_INTERVAL_SECONDS = 15
 # Deleting MSK Clusters often takes >10 minutes if the cluster's dependencies
 # have been deleted already and thus the cluster will transition into a FAILED
 # state.
-DEFAULT_WAIT_UNTIL_DELETED_TIMEOUT_SECONDS = 60 * 15
+DEFAULT_WAIT_UNTIL_DELETED_TIMEOUT_SECONDS = 60 * 30
 DEFAULT_WAIT_UNTIL_DELETED_INTERVAL_SECONDS = 15
 
 ClusterMatchFunc = typing.NewType(

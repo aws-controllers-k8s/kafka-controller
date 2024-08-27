@@ -8,4 +8,8 @@
 		if err != nil {
 			return nil, err
 		}
+		err = rm.setResourceAdditionalFields(ctx, ko)
+		if err != nil {
+			return nil, err
+		}
 	}

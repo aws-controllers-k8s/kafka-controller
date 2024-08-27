@@ -120,6 +120,9 @@ class TestCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         condition.assert_synced(ref)
 
+        cr = k8s.get_resource(ref)
+        assert cr['status']['bootstrapBrokerStringSASLSCRAM'] is not None
+
         latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 1
         assert secret_1 in latest_secrets
