@@ -1,5 +1,5 @@
-github.com/aws-controllers-k8s/runtime v0.36.0 h1:XEMVGfUwsT9QMShihuCLHlape+daJWyYtXj45s/iJiU=
-github.com/aws-controllers-k8s/runtime v0.36.0/go.mod h1:gI2pWb20UGLP2SnHf1a1VzTd7iVVy+/I9VAzT0Y+Dew=
+github.com/aws-controllers-k8s/runtime v0.38.0 h1:gSEpmBm7OwTPd2kIOU+AIDIivi3teSm5FFrhROfu4wg=
+github.com/aws-controllers-k8s/runtime v0.38.0/go.mod h1:gI2pWb20UGLP2SnHf1a1VzTd7iVVy+/I9VAzT0Y+Dew=
 github.com/aws-controllers-k8s/secretsmanager-controller v0.0.7 h1:b+RT3ilVlahCSskt91YU784Bj0bF/hff4KaqmVCbisQ=
 github.com/aws-controllers-k8s/secretsmanager-controller v0.0.7/go.mod h1:jVR+yHku29dFDsWDx0NaCfmoSQ0MdT6tiOydxZjAYyc=
 github.com/aws/aws-sdk-go v1.49.0 h1:g9BkW1fo9GqKfwg2+zCD+TW/D36Ux+vtfJ8guF4AYmY=
