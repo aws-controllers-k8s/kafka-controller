@@ -666,6 +666,56 @@ func (in *ClusterStatus) DeepCopyInto(out *ClusterStatus) {
 			}
 		}
 	}
+	if in.BootstrapBrokerString != nil {
+		in, out := &in.BootstrapBrokerString, &out.BootstrapBrokerString
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringPublicSASLIAM != nil {
+		in, out := &in.BootstrapBrokerStringPublicSASLIAM, &out.BootstrapBrokerStringPublicSASLIAM
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringPublicSASLSCRAM != nil {
+		in, out := &in.BootstrapBrokerStringPublicSASLSCRAM, &out.BootstrapBrokerStringPublicSASLSCRAM
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringPublicTLS != nil {
+		in, out := &in.BootstrapBrokerStringPublicTLS, &out.BootstrapBrokerStringPublicTLS
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringSASLIAM != nil {
+		in, out := &in.BootstrapBrokerStringSASLIAM, &out.BootstrapBrokerStringSASLIAM
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringSASLSCRAM != nil {
+		in, out := &in.BootstrapBrokerStringSASLSCRAM, &out.BootstrapBrokerStringSASLSCRAM
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringTLS != nil {
+		in, out := &in.BootstrapBrokerStringTLS, &out.BootstrapBrokerStringTLS
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringVPCConnectivitySASLIAM != nil {
+		in, out := &in.BootstrapBrokerStringVPCConnectivitySASLIAM, &out.BootstrapBrokerStringVPCConnectivitySASLIAM
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringVPCConnectivitySASLSCRAM != nil {
+		in, out := &in.BootstrapBrokerStringVPCConnectivitySASLSCRAM, &out.BootstrapBrokerStringVPCConnectivitySASLSCRAM
+		*out = new(string)
+		**out = **in
+	}
+	if in.BootstrapBrokerStringVPCConnectivityTLS != nil {
+		in, out := &in.BootstrapBrokerStringVPCConnectivityTLS, &out.BootstrapBrokerStringVPCConnectivityTLS
+		*out = new(string)
+		**out = **in
+	}
 	if in.State != nil {
 		in, out := &in.State, &out.State
 		*out = new(string)

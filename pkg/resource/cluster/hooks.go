@@ -18,11 +18,13 @@ import (
 	"errors"
 	"fmt"
 
+	svcapitypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackcondition "github.com/aws-controllers-k8s/runtime/pkg/condition"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	ackutil "github.com/aws-controllers-k8s/runtime/pkg/util"
+	"github.com/aws/aws-sdk-go/aws"
 	svcsdk "github.com/aws/aws-sdk-go/service/kafka"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -125,7 +127,6 @@ func (rm *resourceManager) customUpdate(
 	// So we construct the updatedRes object from the desired resource to
 	// obtain correct spec fields and then copy the status from latest.
 	updatedRes := rm.concreteResource(desired.DeepCopy())
-	updatedRes.SetStatus(latest)
 
 	if clusterDeleting(latest) {
 		msg := "Cluster is currently being deleted"
@@ -264,4 +265,102 @@ func (rm *resourceManager) batchDisassociateScramSecret(
 	_, err = rm.sdkapi.BatchDisassociateScramSecretWithContext(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "BatchDisassociateScramSecret", err)
 	return err
+}
+
+// setResourceDefaults queries the MSK Cluster for the current state of the
+// fields that are not returned by the ReadOne or List APIs.
+func (rm *resourceManager) setResourceAdditionalFields(ctx context.Context, r *svcapitypes.Cluster) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.setResourceAdditionalFields")
+	defer func() { exit(err) }()
+
+	err = rm.setBootstrapBrokerStringInformations(ctx, r)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setBootstrapBrokerStringInformations sets the bootstrapBrokerString
+// information status fields.
+func (rm *resourceManager) setBootstrapBrokerStringInformations(ctx context.Context, r *svcapitypes.Cluster) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.setBootstrapBrokerStringInformations")
+	defer func() { exit(err) }()
+
+	var output *svcsdk.GetBootstrapBrokersOutput
+	output, err = rm.sdkapi.GetBootstrapBrokersWithContext(
+		ctx,
+		&svcsdk.GetBootstrapBrokersInput{
+			ClusterArn: (*string)(r.Status.ACKResourceMetadata.ARN),
+		},
+	)
+	rm.metrics.RecordAPICall("GET", "GetBootstrapBrokers", err)
+	if err != nil {
+		return err
+	}
+
+	r.Status.BootstrapBrokerString = output.BootstrapBrokerString
+	r.Status.BootstrapBrokerStringPublicSASLIAM = output.BootstrapBrokerStringPublicSaslIam
+	r.Status.BootstrapBrokerStringPublicSASLSCRAM = output.BootstrapBrokerStringPublicSaslScram
+	r.Status.BootstrapBrokerStringPublicTLS = output.BootstrapBrokerStringPublicTls
+	r.Status.BootstrapBrokerStringSASLIAM = output.BootstrapBrokerStringSaslIam
+	r.Status.BootstrapBrokerStringSASLSCRAM = output.BootstrapBrokerStringSaslScram
+	r.Status.BootstrapBrokerStringTLS = output.BootstrapBrokerStringTls
+	r.Status.BootstrapBrokerStringVPCConnectivitySASLIAM = output.BootstrapBrokerStringVpcConnectivitySaslIam
+	r.Status.BootstrapBrokerStringVPCConnectivitySASLSCRAM = output.BootstrapBrokerStringVpcConnectivitySaslScram
+	r.Status.BootstrapBrokerStringVPCConnectivityTLS = output.BootstrapBrokerStringVpcConnectivityTls
+	return nil
+}
+
+func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
+	// Set MSK defaults
+	if a.ko.Spec.BrokerNodeGroupInfo == nil {
+		a.ko.Spec.BrokerNodeGroupInfo = b.ko.Spec.BrokerNodeGroupInfo
+	}
+	if a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution == nil {
+		a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution = aws.String(svcsdk.BrokerAZDistributionDefault)
+	}
+	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+		a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo
+	}
+	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess
+		}
+		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
+			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = aws.String("DISABLED")
+		}
+	}
+	if a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups == nil {
+		a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups = b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups
+	}
+	if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo == nil {
+		a.ko.Spec.BrokerNodeGroupInfo.StorageInfo = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo
+	}
+	if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo != nil {
+		if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo == nil {
+			a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo
+		}
+		if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize == nil {
+			a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
+		}
+	}
+
+	if a.ko.Spec.ClientAuthentication == nil {
+		a.ko.Spec.ClientAuthentication = b.ko.Spec.ClientAuthentication
+	}
+	if a.ko.Spec.EncryptionInfo == nil {
+		a.ko.Spec.EncryptionInfo = b.ko.Spec.EncryptionInfo
+	}
+	if a.ko.Spec.EnhancedMonitoring == nil {
+		a.ko.Spec.EnhancedMonitoring = aws.String(svcsdk.EnhancedMonitoringDefault)
+	}
+	if a.ko.Spec.OpenMonitoring == nil {
+		a.ko.Spec.OpenMonitoring = b.ko.Spec.OpenMonitoring
+	}
+	if a.ko.Spec.StorageMode == nil {
+		a.ko.Spec.StorageMode = aws.String(svcsdk.StorageModeLocal)
+	}
 }

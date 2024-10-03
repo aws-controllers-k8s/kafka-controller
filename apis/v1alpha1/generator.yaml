@@ -26,6 +26,8 @@ resources:
         template_path: hooks/cluster/sdk_update_pre_build_request.go.tpl
       sdk_delete_pre_build_request:
         template_path: hooks/cluster/sdk_delete_pre_build_request.go.tpl
+      delta_pre_compare:
+        code: customPreCompare(delta, a, b)
     update_operation:
       custom_method_name: customUpdate
     synced:
@@ -49,10 +51,42 @@ resources:
       Tags:
         compare:
           is_ignored: true
+      BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
+        go_tag: json:"type,omitempty"
       ZookeeperConnectString:
         type: string
         is_read_only: true
       ZookeeperConnectStringTls:
+        type: string
+        is_read_only: true
+      BootstrapBrokerString:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringPublicSaslIam:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringPublicSaslScram:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringPublicTls:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringSaslIam:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringSaslScram:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringTls:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringVpcConnectivitySaslIam:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringVpcConnectivitySaslScram:
+        type: string
+        is_read_only: true
+      BootstrapBrokerStringVpcConnectivityTls:
         type: string
         is_read_only: true
     tags:

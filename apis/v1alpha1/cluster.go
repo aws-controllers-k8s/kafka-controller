@@ -71,6 +71,26 @@ type ClusterStatus struct {
 	// resource
 	// +kubebuilder:validation:Optional
 	Conditions []*ackv1alpha1.Condition `json:"conditions"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerString *string `json:"bootstrapBrokerString,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringPublicSASLIAM *string `json:"bootstrapBrokerStringPublicSASLIAM,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringPublicSASLSCRAM *string `json:"bootstrapBrokerStringPublicSASLSCRAM,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringPublicTLS *string `json:"bootstrapBrokerStringPublicTLS,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringSASLIAM *string `json:"bootstrapBrokerStringSASLIAM,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringSASLSCRAM *string `json:"bootstrapBrokerStringSASLSCRAM,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringTLS *string `json:"bootstrapBrokerStringTLS,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringVPCConnectivitySASLIAM *string `json:"bootstrapBrokerStringVPCConnectivitySASLIAM,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringVPCConnectivitySASLSCRAM *string `json:"bootstrapBrokerStringVPCConnectivitySASLSCRAM,omitempty"`
+	// +kubebuilder:validation:Optional
+	BootstrapBrokerStringVPCConnectivityTLS *string `json:"bootstrapBrokerStringVPCConnectivityTLS,omitempty"`
 	// The state of the cluster. The possible states are ACTIVE, CREATING, DELETING,
 	// FAILED, HEALING, MAINTENANCE, REBOOTING_BROKER, and UPDATING.
 	// +kubebuilder:validation:Optional
