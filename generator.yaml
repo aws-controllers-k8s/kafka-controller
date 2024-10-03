@@ -51,6 +51,8 @@ resources:
       Tags:
         compare:
           is_ignored: true
+      BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
+        go_tag: json:"type,omitempty"
       ZookeeperConnectString:
         type: string
         is_read_only: true

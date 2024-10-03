@@ -322,14 +322,16 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	if a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution == nil {
 		a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution = aws.String(svcsdk.BrokerAZDistributionDefault)
 	}
-	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo == nil {
+	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 		a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo
 	}
-	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess == nil {
-		a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess
-	}
-	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
-		a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = aws.String("DISABLED")
+	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess
+		}
+		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
+			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = aws.String("DISABLED")
+		}
 	}
 	if a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups == nil {
 		a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups = b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups
@@ -337,11 +339,13 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo == nil {
 		a.ko.Spec.BrokerNodeGroupInfo.StorageInfo = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo
 	}
-	if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo == nil {
-		a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo
-	}
-	if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize == nil {
-		a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
+	if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo != nil {
+		if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo == nil {
+			a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo
+		}
+		if a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize == nil {
+			a.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize = b.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
+		}
 	}
 
 	if a.ko.Spec.ClientAuthentication == nil {

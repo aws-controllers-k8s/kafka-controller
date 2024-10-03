@@ -425,7 +425,7 @@ type ProvisionedThroughput struct {
 
 // Broker public access control.
 type PublicAccess struct {
-	Type *string `json:"type_,omitempty"`
+	Type *string `json:"type,omitempty"`
 }
 
 // The details of the Amazon S3 destination for broker logs.
