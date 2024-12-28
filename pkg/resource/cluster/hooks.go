@@ -361,6 +361,6 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		a.ko.Spec.OpenMonitoring = b.ko.Spec.OpenMonitoring
 	}
 	if a.ko.Spec.StorageMode == nil {
-		a.ko.Spec.StorageMode = aws.String(svcsdk.StorageModeLocal)
+		a.ko.Spec.StorageMode = b.ko.Spec.StorageMode
 	}
 }
