@@ -28,6 +28,11 @@ var (
 	_ = ackv1alpha1.AWSAccountID("")
 )
 
+// Details of an Amazon MSK Cluster.
+type AmazonMskCluster struct {
+	MskClusterARN *string `json:"mskClusterARN,omitempty"`
+}
+
 // Specifies the EBS volume upgrade information. The broker identifier must
 // be set to the keyword ALL. This means the changes apply to all the brokers
 // in the cluster.
@@ -39,22 +44,21 @@ type BrokerEBSVolumeInfo struct {
 	VolumeSizeGB          *int64                 `json:"volumeSizeGB,omitempty"`
 }
 
-// The broker logs configuration for this MSK cluster.
 type BrokerLogs struct {
-	// Details of the CloudWatch Logs destination for broker logs.
 	CloudWatchLogs *CloudWatchLogs `json:"cloudWatchLogs,omitempty"`
-	// Firehose details for BrokerLogs.
-	Firehose *Firehose `json:"firehose,omitempty"`
-	// The details of the Amazon S3 destination for broker logs.
-	S3 *S3 `json:"s3,omitempty"`
+	Firehose       *Firehose       `json:"firehose,omitempty"`
+	S3             *S3             `json:"s3,omitempty"`
 }
 
 // Describes the setup to be used for Apache Kafka broker nodes in the cluster.
 type BrokerNodeGroupInfo struct {
-	// The distribution of broker nodes across Availability Zones. By default, broker
-	// nodes are distributed among the Availability Zones of your Region. Currently,
-	// the only supported value is DEFAULT. You can either specify this value explicitly
-	// or leave it out.
+	// The distribution of broker nodes across Availability Zones. This is an optional
+	// parameter. If you don't specify it, Amazon MSK gives it the value DEFAULT.
+	// You can also explicitly set this parameter to the value DEFAULT. No other
+	// values are currently allowed.
+	//
+	// Amazon MSK distributes the broker nodes evenly across the Availability Zones
+	// that correspond to the subnets you provide when you create the cluster.
 	BrokerAZDistribution *string   `json:"brokerAZDistribution,omitempty"`
 	ClientSubnets        []*string `json:"clientSubnets,omitempty"`
 	// Information about the broker access configuration.
@@ -84,14 +88,21 @@ type BrokerSoftwareInfo struct {
 
 // Includes all client authentication information.
 type ClientAuthentication struct {
+	// Details for client authentication using SASL.
 	SASL *SASL `json:"sasl,omitempty"`
 	// Details for client authentication using TLS.
-	TLS *TLS `json:"tls,omitempty"`
-	// Contains information about unauthenticated traffic to the cluster.
+	TLS             *TLS             `json:"tls,omitempty"`
 	Unauthenticated *Unauthenticated `json:"unauthenticated,omitempty"`
 }
 
-// Details of the CloudWatch Logs destination for broker logs.
+// The client VPC connection object.
+type ClientVPCConnection struct {
+	Authentication   *string      `json:"authentication,omitempty"`
+	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
+	Owner            *string      `json:"owner,omitempty"`
+	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+}
+
 type CloudWatchLogs struct {
 	Enabled  *bool   `json:"enabled,omitempty"`
 	LogGroup *string `json:"logGroup,omitempty"`
@@ -110,6 +121,8 @@ type ClusterInfo struct {
 	// Information about the current software installed on the cluster.
 	CurrentBrokerSoftwareInfo *BrokerSoftwareInfo `json:"currentBrokerSoftwareInfo,omitempty"`
 	CurrentVersion            *string             `json:"currentVersion,omitempty"`
+	// A type of an action required from the customer.
+	CustomerActionStatus *string `json:"customerActionStatus,omitempty"`
 	// Includes encryption-related information, such as the AWS KMS key used for
 	// encrypting data at rest and whether you want MSK to encrypt your data in
 	// transit.
@@ -118,17 +131,13 @@ type ClusterInfo struct {
 	// the following possible values: DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER,
 	// and PER_TOPIC_PER_PARTITION. For a list of the metrics associated with each
 	// of these levels of monitoring, see Monitoring (https://docs.aws.amazon.com/msk/latest/developerguide/monitoring.html).
-	EnhancedMonitoring *string `json:"enhancedMonitoring,omitempty"`
-	// You can configure your MSK cluster to send broker logs to different destination
-	// types. This is a container for the configuration details related to broker
-	// logs.
+	EnhancedMonitoring  *string      `json:"enhancedMonitoring,omitempty"`
 	LoggingInfo         *LoggingInfo `json:"loggingInfo,omitempty"`
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
 	OpenMonitoring *OpenMonitoring `json:"openMonitoring,omitempty"`
-	// The state of an Apache Kafka cluster.
-	State *string `json:"state,omitempty"`
-	// Contains information about the state of the Amazon MSK cluster.
+	// The state of the Apache Kafka cluster.
+	State     *string    `json:"state,omitempty"`
 	StateInfo *StateInfo `json:"stateInfo,omitempty"`
 	// Controls storage mode for various supported storage tiers.
 	StorageMode               *string            `json:"storageMode,omitempty"`
@@ -158,17 +167,35 @@ type ClusterOperationStepInfo struct {
 	StepStatus *string `json:"stepStatus,omitempty"`
 }
 
-// Returns information about a cluster of either the provisioned or the serverless
-// type.
+// Returns information about a cluster operation.
+type ClusterOperationV2 struct {
+	ClusterARN     *string      `json:"clusterARN,omitempty"`
+	EndTime        *metav1.Time `json:"endTime,omitempty"`
+	OperationARN   *string      `json:"operationARN,omitempty"`
+	OperationState *string      `json:"operationState,omitempty"`
+	OperationType  *string      `json:"operationType,omitempty"`
+	StartTime      *metav1.Time `json:"startTime,omitempty"`
+}
+
+// Returns information about a cluster operation.
+type ClusterOperationV2Summary struct {
+	ClusterARN     *string      `json:"clusterARN,omitempty"`
+	EndTime        *metav1.Time `json:"endTime,omitempty"`
+	OperationARN   *string      `json:"operationARN,omitempty"`
+	OperationState *string      `json:"operationState,omitempty"`
+	OperationType  *string      `json:"operationType,omitempty"`
+	StartTime      *metav1.Time `json:"startTime,omitempty"`
+}
+
+// Returns information about a cluster.
 type Cluster_SDK struct {
 	ActiveOperationARN *string      `json:"activeOperationARN,omitempty"`
 	ClusterARN         *string      `json:"clusterARN,omitempty"`
 	ClusterName        *string      `json:"clusterName,omitempty"`
 	CreationTime       *metav1.Time `json:"creationTime,omitempty"`
 	CurrentVersion     *string      `json:"currentVersion,omitempty"`
-	// The state of an Apache Kafka cluster.
-	State *string `json:"state,omitempty"`
-	// Contains information about the state of the Amazon MSK cluster.
+	// The state of the Apache Kafka cluster.
+	State     *string            `json:"state,omitempty"`
 	StateInfo *StateInfo         `json:"stateInfo,omitempty"`
 	Tags      map[string]*string `json:"tags,omitempty"`
 }
@@ -208,8 +235,25 @@ type Configuration_SDK struct {
 
 // Information about the broker access configuration.
 type ConnectivityInfo struct {
-	// Broker public access control.
+	// Public access control for brokers.
 	PublicAccess *PublicAccess `json:"publicAccess,omitempty"`
+}
+
+// Details about consumer group replication.
+type ConsumerGroupReplication struct {
+	DetectAndCopyNewConsumerGroups  *bool `json:"detectAndCopyNewConsumerGroups,omitempty"`
+	SynchroniseConsumerGroupOffsets *bool `json:"synchroniseConsumerGroupOffsets,omitempty"`
+}
+
+// Details about consumer group replication.
+type ConsumerGroupReplicationUpdate struct {
+	DetectAndCopyNewConsumerGroups  *bool `json:"detectAndCopyNewConsumerGroups,omitempty"`
+	SynchroniseConsumerGroupOffsets *bool `json:"synchroniseConsumerGroupOffsets,omitempty"`
+}
+
+// Controller node information.
+type ControllerNodeInfo struct {
+	Endpoints []*string `json:"endpoints,omitempty"`
 }
 
 // Contains information about the EBS storage volumes attached to Apache Kafka
@@ -249,36 +293,48 @@ type ErrorInfo struct {
 	ErrorString *string `json:"errorString,omitempty"`
 }
 
-// Firehose details for BrokerLogs.
 type Firehose struct {
 	DeliveryStream *string `json:"deliveryStream,omitempty"`
 	Enabled        *bool   `json:"enabled,omitempty"`
 }
 
+// Details for IAM access control.
 type IAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
-// Indicates whether you want to enable or disable the JMX Exporter.
+// Indicates whether you want to turn on or turn off the JMX Exporter.
 type JmxExporter struct {
 	EnabledInBroker *bool `json:"enabledInBroker,omitempty"`
 }
 
-// Indicates whether you want to enable or disable the JMX Exporter.
+// Indicates whether you want to turn on or turn off the JMX Exporter.
 type JmxExporterInfo struct {
 	EnabledInBroker *bool `json:"enabledInBroker,omitempty"`
 }
 
-// Information about a Apache Kafka version.
+// Details of an Amazon VPC which has network connectivity to the Apache Kafka
+// cluster.
+type KafkaClusterClientVPCConfig struct {
+	SecurityGroupIDs []*string `json:"securityGroupIDs,omitempty"`
+	SubnetIDs        []*string `json:"subnetIDs,omitempty"`
+}
+
+// Information about Kafka Cluster used as source / target for replication.
+type KafkaClusterDescription struct {
+	KafkaClusterAlias *string `json:"kafkaClusterAlias,omitempty"`
+}
+
+// Summarized information about Kafka Cluster used as source / target for replication.
+type KafkaClusterSummary struct {
+	KafkaClusterAlias *string `json:"kafkaClusterAlias,omitempty"`
+}
+
 type KafkaVersion struct {
 	Version *string `json:"version,omitempty"`
 }
 
-// You can configure your MSK cluster to send broker logs to different destination
-// types. This is a container for the configuration details related to broker
-// logs.
 type LoggingInfo struct {
-	// The broker logs configuration for this MSK cluster.
 	BrokerLogs *BrokerLogs `json:"brokerLogs,omitempty"`
 }
 
@@ -298,12 +354,9 @@ type MutableClusterInfo struct {
 	// the following possible values: DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER,
 	// and PER_TOPIC_PER_PARTITION. For a list of the metrics associated with each
 	// of these levels of monitoring, see Monitoring (https://docs.aws.amazon.com/msk/latest/developerguide/monitoring.html).
-	EnhancedMonitoring *string `json:"enhancedMonitoring,omitempty"`
-	InstanceType       *string `json:"instanceType,omitempty"`
-	KafkaVersion       *string `json:"kafkaVersion,omitempty"`
-	// You can configure your MSK cluster to send broker logs to different destination
-	// types. This is a container for the configuration details related to broker
-	// logs.
+	EnhancedMonitoring  *string      `json:"enhancedMonitoring,omitempty"`
+	InstanceType        *string      `json:"instanceType,omitempty"`
+	KafkaVersion        *string      `json:"kafkaVersion,omitempty"`
 	LoggingInfo         *LoggingInfo `json:"loggingInfo,omitempty"`
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
@@ -312,12 +365,12 @@ type MutableClusterInfo struct {
 	StorageMode *string `json:"storageMode,omitempty"`
 }
 
-// Indicates whether you want to enable or disable the Node Exporter.
+// Indicates whether you want to turn on or turn off the Node Exporter.
 type NodeExporter struct {
 	EnabledInBroker *bool `json:"enabledInBroker,omitempty"`
 }
 
-// Indicates whether you want to enable or disable the Node Exporter.
+// Indicates whether you want to turn on or turn off the Node Exporter.
 type NodeExporterInfo struct {
 	EnabledInBroker *bool `json:"enabledInBroker,omitempty"`
 }
@@ -331,7 +384,7 @@ type NodeInfo struct {
 
 // JMX and Node monitoring for the MSK cluster.
 type OpenMonitoring struct {
-	// Prometheus settings for open monitoring.
+	// Prometheus settings.
 	Prometheus *Prometheus `json:"prometheus,omitempty"`
 }
 
@@ -341,23 +394,23 @@ type OpenMonitoringInfo struct {
 	Prometheus *PrometheusInfo `json:"prometheus,omitempty"`
 }
 
-// Prometheus settings for open monitoring.
+// Prometheus settings.
 type Prometheus struct {
-	// Indicates whether you want to enable or disable the JMX Exporter.
+	// Indicates whether you want to turn on or turn off the JMX Exporter.
 	JmxExporter *JmxExporter `json:"jmxExporter,omitempty"`
-	// Indicates whether you want to enable or disable the Node Exporter.
+	// Indicates whether you want to turn on or turn off the Node Exporter.
 	NodeExporter *NodeExporter `json:"nodeExporter,omitempty"`
 }
 
 // Prometheus settings.
 type PrometheusInfo struct {
-	// Indicates whether you want to enable or disable the JMX Exporter.
+	// Indicates whether you want to turn on or turn off the JMX Exporter.
 	JmxExporter *JmxExporterInfo `json:"jmxExporter,omitempty"`
-	// Indicates whether you want to enable or disable the Node Exporter.
+	// Indicates whether you want to turn on or turn off the Node Exporter.
 	NodeExporter *NodeExporterInfo `json:"nodeExporter,omitempty"`
 }
 
-// Describes the provisioned cluster.
+// Provisioned cluster.
 type Provisioned struct {
 	// Describes the setup to be used for Apache Kafka broker nodes in the cluster.
 	BrokerNodeGroupInfo *BrokerNodeGroupInfo `json:"brokerNodeGroupInfo,omitempty"`
@@ -365,6 +418,8 @@ type Provisioned struct {
 	ClientAuthentication *ClientAuthentication `json:"clientAuthentication,omitempty"`
 	// Information about the current software installed on the cluster.
 	CurrentBrokerSoftwareInfo *BrokerSoftwareInfo `json:"currentBrokerSoftwareInfo,omitempty"`
+	// A type of an action required from the customer.
+	CustomerActionStatus *string `json:"customerActionStatus,omitempty"`
 	// Includes encryption-related information, such as the AWS KMS key used for
 	// encrypting data at rest and whether you want MSK to encrypt your data in
 	// transit.
@@ -373,10 +428,7 @@ type Provisioned struct {
 	// the following possible values: DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER,
 	// and PER_TOPIC_PER_PARTITION. For a list of the metrics associated with each
 	// of these levels of monitoring, see Monitoring (https://docs.aws.amazon.com/msk/latest/developerguide/monitoring.html).
-	EnhancedMonitoring *string `json:"enhancedMonitoring,omitempty"`
-	// You can configure your MSK cluster to send broker logs to different destination
-	// types. This is a container for the configuration details related to broker
-	// logs.
+	EnhancedMonitoring  *string      `json:"enhancedMonitoring,omitempty"`
 	LoggingInfo         *LoggingInfo `json:"loggingInfo,omitempty"`
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
@@ -387,7 +439,7 @@ type Provisioned struct {
 	ZookeeperConnectStringTLS *string `json:"zookeeperConnectStringTLS,omitempty"`
 }
 
-// Creates a provisioned cluster.
+// Provisioned cluster request.
 type ProvisionedRequest struct {
 	// Describes the setup to be used for Apache Kafka broker nodes in the cluster.
 	BrokerNodeGroupInfo *BrokerNodeGroupInfo `json:"brokerNodeGroupInfo,omitempty"`
@@ -403,11 +455,8 @@ type ProvisionedRequest struct {
 	// the following possible values: DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER,
 	// and PER_TOPIC_PER_PARTITION. For a list of the metrics associated with each
 	// of these levels of monitoring, see Monitoring (https://docs.aws.amazon.com/msk/latest/developerguide/monitoring.html).
-	EnhancedMonitoring *string `json:"enhancedMonitoring,omitempty"`
-	KafkaVersion       *string `json:"kafkaVersion,omitempty"`
-	// You can configure your MSK cluster to send broker logs to different destination
-	// types. This is a container for the configuration details related to broker
-	// logs.
+	EnhancedMonitoring  *string      `json:"enhancedMonitoring,omitempty"`
+	KafkaVersion        *string      `json:"kafkaVersion,omitempty"`
 	LoggingInfo         *LoggingInfo `json:"loggingInfo,omitempty"`
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
@@ -423,33 +472,72 @@ type ProvisionedThroughput struct {
 	VolumeThroughput *int64 `json:"volumeThroughput,omitempty"`
 }
 
-// Broker public access control.
+// Public access control for brokers.
 type PublicAccess struct {
 	Type *string `json:"type,omitempty"`
 }
 
-// The details of the Amazon S3 destination for broker logs.
+// Specifies configuration for replication between a source and target Kafka
+// cluster.
+type ReplicationInfo struct {
+	SourceKafkaClusterARN *string `json:"sourceKafkaClusterARN,omitempty"`
+	TargetKafkaClusterARN *string `json:"targetKafkaClusterARN,omitempty"`
+}
+
+// Specifies configuration for replication between a source and target Kafka
+// cluster (sourceKafkaClusterAlias -> targetKafkaClusterAlias)
+type ReplicationInfoDescription struct {
+	SourceKafkaClusterAlias *string `json:"sourceKafkaClusterAlias,omitempty"`
+	TargetKafkaClusterAlias *string `json:"targetKafkaClusterAlias,omitempty"`
+}
+
+// Summarized information of replication between clusters.
+type ReplicationInfoSummary struct {
+	SourceKafkaClusterAlias *string `json:"sourceKafkaClusterAlias,omitempty"`
+	TargetKafkaClusterAlias *string `json:"targetKafkaClusterAlias,omitempty"`
+}
+
+// Details about the state of a replicator
+type ReplicationStateInfo struct {
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
+}
+
+// Information about a replicator.
+type ReplicatorSummary struct {
+	CreationTime          *metav1.Time `json:"creationTime,omitempty"`
+	CurrentVersion        *string      `json:"currentVersion,omitempty"`
+	IsReplicatorReference *bool        `json:"isReplicatorReference,omitempty"`
+	ReplicatorARN         *string      `json:"replicatorARN,omitempty"`
+	ReplicatorName        *string      `json:"replicatorName,omitempty"`
+	ReplicatorResourceARN *string      `json:"replicatorResourceARN,omitempty"`
+}
+
 type S3 struct {
 	Bucket  *string `json:"bucket,omitempty"`
 	Enabled *bool   `json:"enabled,omitempty"`
 	Prefix  *string `json:"prefix,omitempty"`
 }
 
+// Details for client authentication using SASL.
 type SASL struct {
-	IAM   *IAM   `json:"iam,omitempty"`
+	// Details for IAM access control.
+	IAM *IAM `json:"iam,omitempty"`
+	// Details for SASL/SCRAM client authentication.
 	SCRAM *SCRAM `json:"scram,omitempty"`
 }
 
+// Details for SASL/SCRAM client authentication.
 type SCRAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
-// Describes the serverless cluster SASL information.
+// Details for client authentication using SASL.
 type ServerlessSASL struct {
+	// Details for IAM access control.
 	IAM *IAM `json:"iam,omitempty"`
 }
 
-// Contains information about the state of the Amazon MSK cluster.
 type StateInfo struct {
 	Code    *string `json:"code,omitempty"`
 	Message *string `json:"message,omitempty"`
@@ -468,21 +556,78 @@ type TLS struct {
 	Enabled                     *bool     `json:"enabled,omitempty"`
 }
 
-// Contains information about unauthenticated traffic to the cluster.
+// Details about topic replication.
+type TopicReplication struct {
+	CopyAccessControlListsForTopics *bool `json:"copyAccessControlListsForTopics,omitempty"`
+	CopyTopicConfigurations         *bool `json:"copyTopicConfigurations,omitempty"`
+	DetectAndCopyNewTopics          *bool `json:"detectAndCopyNewTopics,omitempty"`
+}
+
+// Details for updating the topic replication of a replicator.
+type TopicReplicationUpdate struct {
+	CopyAccessControlListsForTopics *bool `json:"copyAccessControlListsForTopics,omitempty"`
+	CopyTopicConfigurations         *bool `json:"copyTopicConfigurations,omitempty"`
+	DetectAndCopyNewTopics          *bool `json:"detectAndCopyNewTopics,omitempty"`
+}
+
 type Unauthenticated struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// Error info for scram secret associate/disassociate failure.
 type UnprocessedSCRAMSecret struct {
 	ErrorCode    *string `json:"errorCode,omitempty"`
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 	SecretARN    *string `json:"secretARN,omitempty"`
 }
 
+// Description of the requester that calls the API operation.
+type UserIdentity struct {
+	PrincipalID *string `json:"principalID,omitempty"`
+}
+
 // The configuration of the Amazon VPCs for the cluster.
 type VPCConfig struct {
 	SecurityGroupIDs []*string `json:"securityGroupIDs,omitempty"`
 	SubnetIDs        []*string `json:"subnetIDs,omitempty"`
+}
+
+// The VPC connection object.
+type VPCConnection struct {
+	Authentication   *string      `json:"authentication,omitempty"`
+	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
+	TargetClusterARN *string      `json:"targetClusterARN,omitempty"`
+	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+	VPCID            *string      `json:"vpcID,omitempty"`
+}
+
+// Description of the VPC connection.
+type VPCConnectionInfo struct {
+	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
+	Owner            *string      `json:"owner,omitempty"`
+	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+}
+
+// Description of the VPC connection.
+type VPCConnectionInfoServerless struct {
+	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
+	Owner            *string      `json:"owner,omitempty"`
+	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+}
+
+// Details for IAM access control for VPC connectivity.
+type VPCConnectivityIAM struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Details for SASL/SCRAM client authentication for VPC connectivity.
+type VPCConnectivitySCRAM struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Details for TLS client authentication for VPC connectivity.
+type VPCConnectivityTLS struct {
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // Zookeeper node information.

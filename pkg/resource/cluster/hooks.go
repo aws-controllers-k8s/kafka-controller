@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	svcapitypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
@@ -24,8 +25,9 @@ import (
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	ackutil "github.com/aws-controllers-k8s/runtime/pkg/util"
-	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/kafka"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/kafka"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -33,18 +35,18 @@ var (
 	// TerminalStatuses are the status strings that are terminal states for a
 	// cluster.
 	TerminalStatuses = []string{
-		svcsdk.ClusterStateDeleting,
-		svcsdk.ClusterStateFailed,
+		string(svcsdktypes.ClusterStateDeleting),
+		string(svcsdktypes.ClusterStateFailed),
 	}
 )
 
 var (
 	requeueWaitWhileDeleting = ackrequeue.NeededAfter(
-		fmt.Errorf("cluster in '%s' state, cannot be modified or deleted", svcsdk.ClusterStateDeleting),
+		fmt.Errorf("cluster in '%s' state, cannot be modified or deleted", string(svcsdktypes.ClusterStateDeleting)),
 		ackrequeue.DefaultRequeueAfterDuration,
 	)
 	requeueWaitWhileCreating = ackrequeue.NeededAfter(
-		fmt.Errorf("cluster in '%s' state, cannot be modified or deleted", svcsdk.ClusterStateCreating),
+		fmt.Errorf("cluster in '%s' state, cannot be modified or deleted", string(svcsdktypes.ClusterStateCreating)),
 		ackrequeue.DefaultRequeueAfterDuration,
 	)
 )
@@ -58,7 +60,7 @@ func requeueWaitUntilCanModify(r *resource) *ackrequeue.RequeueNeededAfter {
 	state := *r.ko.Status.State
 	msg := fmt.Sprintf(
 		"Cluster in '%s' state, cannot be modified until '%s'.",
-		state, svcsdk.ClusterStateActive,
+		state, string(svcsdktypes.ClusterStateActive),
 	)
 	return ackrequeue.NeededAfter(
 		errors.New(msg),
@@ -88,7 +90,7 @@ func clusterActive(r *resource) bool {
 		return false
 	}
 	cs := *r.ko.Status.State
-	return cs == svcsdk.ClusterStateActive
+	return cs == string(svcsdktypes.ClusterStateActive)
 }
 
 // clusterCreating returns true if the supplied cluster is in the process
@@ -98,7 +100,7 @@ func clusterCreating(r *resource) bool {
 		return false
 	}
 	cs := *r.ko.Status.State
-	return cs == svcsdk.ClusterStateCreating
+	return cs == strings.ToLower(string(svcsdktypes.ClusterStateCreating))
 }
 
 // clusterDeleting returns true if the supplied cluster is in the process
@@ -108,7 +110,7 @@ func clusterDeleting(r *resource) bool {
 		return false
 	}
 	cs := *r.ko.Status.State
-	return cs == svcsdk.ClusterStateDeleting
+	return cs == strings.ToLower(string(svcsdktypes.ClusterStateDeleting))
 }
 
 func (rm *resourceManager) customUpdate(
@@ -127,6 +129,9 @@ func (rm *resourceManager) customUpdate(
 	// So we construct the updatedRes object from the desired resource to
 	// obtain correct spec fields and then copy the status from latest.
 	updatedRes := rm.concreteResource(desired.DeepCopy())
+
+	// Copy status from latest since it has the current cluster state
+	updatedRes.ko.Status = latest.ko.Status
 
 	if clusterDeleting(latest) {
 		msg := "Cluster is currently being deleted"
@@ -151,6 +156,8 @@ func (rm *resourceManager) customUpdate(
 		}
 	}
 
+	// Set synced condition to True after successful update
+	ackcondition.SetSynced(updatedRes, corev1.ConditionTrue, nil, nil)
 	return updatedRes, nil
 }
 
@@ -216,15 +223,21 @@ func (rm *resourceManager) getAssociatedScramSecrets(
 	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	res := []*string{}
 
-	err = rm.sdkapi.ListScramSecretsPagesWithContext(
-		ctx, input, func(page *svcsdk.ListScramSecretsOutput, _ bool) bool {
-			if page == nil {
-				return true
-			}
-			res = append(res, page.SecretArnList...)
-			return page.NextToken != nil
-		},
-	)
+	paginator := svcsdk.NewListScramSecretsPaginator(rm.sdkapi, input)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if page == nil {
+			continue
+		}
+		// Convert []string to []*string
+		for _, arn := range page.SecretArnList {
+			arnCopy := arn
+			res = append(res, &arnCopy)
+		}
+	}
 	rm.metrics.RecordAPICall("READ_MANY", "ListScramSecrets", err)
 	return res, err
 }
@@ -242,8 +255,13 @@ func (rm *resourceManager) batchAssociateScramSecret(
 
 	input := &svcsdk.BatchAssociateScramSecretInput{}
 	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
-	input.SecretArnList = secretARNs
-	_, err = rm.sdkapi.BatchAssociateScramSecretWithContext(ctx, input)
+	// Convert []*string to []string
+	unrefSecrets := make([]string, len(secretARNs))
+	for i, s := range secretARNs {
+		unrefSecrets[i] = *s
+	}
+	input.SecretArnList = unrefSecrets
+	_, err = rm.sdkapi.BatchAssociateScramSecret(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "BatchAssociateScramSecret", err)
 	return err
 }
@@ -261,8 +279,13 @@ func (rm *resourceManager) batchDisassociateScramSecret(
 
 	input := &svcsdk.BatchDisassociateScramSecretInput{}
 	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
-	input.SecretArnList = secretARNs
-	_, err = rm.sdkapi.BatchDisassociateScramSecretWithContext(ctx, input)
+	// Convert []*string to []string
+	unrefSecrets := make([]string, len(secretARNs))
+	for i, s := range secretARNs {
+		unrefSecrets[i] = *s
+	}
+	input.SecretArnList = unrefSecrets
+	_, err = rm.sdkapi.BatchDisassociateScramSecret(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "BatchDisassociateScramSecret", err)
 	return err
 }
@@ -290,7 +313,7 @@ func (rm *resourceManager) setBootstrapBrokerStringInformations(ctx context.Cont
 	defer func() { exit(err) }()
 
 	var output *svcsdk.GetBootstrapBrokersOutput
-	output, err = rm.sdkapi.GetBootstrapBrokersWithContext(
+	output, err = rm.sdkapi.GetBootstrapBrokers(
 		ctx,
 		&svcsdk.GetBootstrapBrokersInput{
 			ClusterArn: (*string)(r.Status.ACKResourceMetadata.ARN),
@@ -320,7 +343,7 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		a.ko.Spec.BrokerNodeGroupInfo = b.ko.Spec.BrokerNodeGroupInfo
 	}
 	if a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution == nil {
-		a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution = aws.String(svcsdk.BrokerAZDistributionDefault)
+		a.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution = aws.String(string(svcsdktypes.BrokerAZDistributionDefault))
 	}
 	if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 		a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo
@@ -355,12 +378,12 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		a.ko.Spec.EncryptionInfo = b.ko.Spec.EncryptionInfo
 	}
 	if a.ko.Spec.EnhancedMonitoring == nil {
-		a.ko.Spec.EnhancedMonitoring = aws.String(svcsdk.EnhancedMonitoringDefault)
+		a.ko.Spec.EnhancedMonitoring = aws.String(string(svcsdktypes.EnhancedMonitoringDefault))
 	}
 	if a.ko.Spec.OpenMonitoring == nil {
 		a.ko.Spec.OpenMonitoring = b.ko.Spec.OpenMonitoring
 	}
 	if a.ko.Spec.StorageMode == nil {
-		a.ko.Spec.StorageMode = aws.String(svcsdk.StorageModeLocal)
+		a.ko.Spec.StorageMode = aws.String(string(svcsdktypes.StorageModeLocal))
 	}
 }

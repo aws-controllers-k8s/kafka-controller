@@ -24,9 +24,9 @@ const (
 type ClientBroker string
 
 const (
+	ClientBroker_PLAINTEXT     ClientBroker = "PLAINTEXT"
 	ClientBroker_TLS           ClientBroker = "TLS"
 	ClientBroker_TLS_PLAINTEXT ClientBroker = "TLS_PLAINTEXT"
-	ClientBroker_PLAINTEXT     ClientBroker = "PLAINTEXT"
 )
 
 type ClusterState string
@@ -53,8 +53,16 @@ type ConfigurationState string
 
 const (
 	ConfigurationState_ACTIVE        ConfigurationState = "ACTIVE"
-	ConfigurationState_DELETING      ConfigurationState = "DELETING"
 	ConfigurationState_DELETE_FAILED ConfigurationState = "DELETE_FAILED"
+	ConfigurationState_DELETING      ConfigurationState = "DELETING"
+)
+
+type CustomerActionStatus string
+
+const (
+	CustomerActionStatus_ACTION_RECOMMENDED       CustomerActionStatus = "ACTION_RECOMMENDED"
+	CustomerActionStatus_CRITICAL_ACTION_REQUIRED CustomerActionStatus = "CRITICAL_ACTION_REQUIRED"
+	CustomerActionStatus_NONE                     CustomerActionStatus = "NONE"
 )
 
 type EnhancedMonitoring string
@@ -79,9 +87,63 @@ const (
 	NodeType_BROKER NodeType = "BROKER"
 )
 
+type ReplicationStartingPositionType string
+
+const (
+	ReplicationStartingPositionType_EARLIEST ReplicationStartingPositionType = "EARLIEST"
+	ReplicationStartingPositionType_LATEST   ReplicationStartingPositionType = "LATEST"
+)
+
+type ReplicationTopicNameConfigurationType string
+
+const (
+	ReplicationTopicNameConfigurationType_IDENTICAL                          ReplicationTopicNameConfigurationType = "IDENTICAL"
+	ReplicationTopicNameConfigurationType_PREFIXED_WITH_SOURCE_CLUSTER_ALIAS ReplicationTopicNameConfigurationType = "PREFIXED_WITH_SOURCE_CLUSTER_ALIAS"
+)
+
+type ReplicatorState string
+
+const (
+	ReplicatorState_CREATING ReplicatorState = "CREATING"
+	ReplicatorState_DELETING ReplicatorState = "DELETING"
+	ReplicatorState_FAILED   ReplicatorState = "FAILED"
+	ReplicatorState_RUNNING  ReplicatorState = "RUNNING"
+	ReplicatorState_UPDATING ReplicatorState = "UPDATING"
+)
+
 type StorageMode string
 
 const (
 	StorageMode_LOCAL  StorageMode = "LOCAL"
 	StorageMode_TIERED StorageMode = "TIERED"
+)
+
+type TargetCompressionType string
+
+const (
+	TargetCompressionType_GZIP   TargetCompressionType = "GZIP"
+	TargetCompressionType_LZ4    TargetCompressionType = "LZ4"
+	TargetCompressionType_NONE   TargetCompressionType = "NONE"
+	TargetCompressionType_SNAPPY TargetCompressionType = "SNAPPY"
+	TargetCompressionType_ZSTD   TargetCompressionType = "ZSTD"
+)
+
+type UserIdentityType string
+
+const (
+	UserIdentityType_AWSACCOUNT UserIdentityType = "AWSACCOUNT"
+	UserIdentityType_AWSSERVICE UserIdentityType = "AWSSERVICE"
+)
+
+type VPCConnectionState string
+
+const (
+	VPCConnectionState_AVAILABLE    VPCConnectionState = "AVAILABLE"
+	VPCConnectionState_CREATING     VPCConnectionState = "CREATING"
+	VPCConnectionState_DEACTIVATING VPCConnectionState = "DEACTIVATING"
+	VPCConnectionState_DELETING     VPCConnectionState = "DELETING"
+	VPCConnectionState_FAILED       VPCConnectionState = "FAILED"
+	VPCConnectionState_INACTIVE     VPCConnectionState = "INACTIVE"
+	VPCConnectionState_REJECTED     VPCConnectionState = "REJECTED"
+	VPCConnectionState_REJECTING    VPCConnectionState = "REJECTING"
 )
