@@ -52,11 +52,14 @@ spec:
                   type: string
                 type: array
               name:
-                description: |-
-                  The name of the configuration. Configuration names are strings that match
-                  the regex "^[0-9A-Za-z-]+$".
+                description: The name of the configuration.
                 type: string
               serverProperties:
+                description: |-
+                  Contents of the server.properties file. When using the API, you must ensure
+                  that the contents of the file are base64 encoded. When using the AWS Management
+                  Console, the SDK, or the AWS CLI, the contents of server.properties can be
+                  in plaintext.
                 format: byte
                 type: string
             required:
@@ -148,7 +151,7 @@ spec:
                 type: object
               state:
                 description: |-
-                  The state of the configuration. The possible states are ACTIVE, DELETING
+                  The state of the configuration. The possible states are ACTIVE, DELETING,
                   and DELETE_FAILED.
                 type: string
             type: object

@@ -29,10 +29,13 @@ type ConfigurationSpec struct {
 	Description *string `json:"description,omitempty"`
 	// The versions of Apache Kafka with which you can use this MSK configuration.
 	KafkaVersions []*string `json:"kafkaVersions,omitempty"`
-	// The name of the configuration. Configuration names are strings that match
-	// the regex "^[0-9A-Za-z-]+$".
+	// The name of the configuration.
 	// +kubebuilder:validation:Required
 	Name *string `json:"name"`
+	// Contents of the server.properties file. When using the API, you must ensure
+	// that the contents of the file are base64 encoded. When using the AWS Management
+	// Console, the SDK, or the AWS CLI, the contents of server.properties can be
+	// in plaintext.
 	// +kubebuilder:validation:Required
 	ServerProperties []byte `json:"serverProperties"`
 }
@@ -56,7 +59,7 @@ type ConfigurationStatus struct {
 	// Latest revision of the configuration.
 	// +kubebuilder:validation:Optional
 	LatestRevision *ConfigurationRevision `json:"latestRevision,omitempty"`
-	// The state of the configuration. The possible states are ACTIVE, DELETING
+	// The state of the configuration. The possible states are ACTIVE, DELETING,
 	// and DELETE_FAILED.
 	// +kubebuilder:validation:Optional
 	State *string `json:"state,omitempty"`

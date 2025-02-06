@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 
@@ -28,8 +29,10 @@ import (
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
-	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/kafka"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/kafka"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
+	smithy "github.com/aws/smithy-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,8 +43,7 @@ import (
 var (
 	_ = &metav1.Time{}
 	_ = strings.ToLower("")
-	_ = &aws.JSONValue{}
-	_ = &svcsdk.Kafka{}
+	_ = &svcsdk.Client{}
 	_ = &svcapitypes.Cluster{}
 	_ = ackv1alpha1.AWSAccountID("")
 	_ = &ackerr.NotFound
@@ -49,6 +51,7 @@ var (
 	_ = &reflect.Value{}
 	_ = fmt.Sprintf("")
 	_ = &ackrequeue.NoRequeue{}
+	_ = &aws.Config{}
 )
 
 // sdkFind returns SDK-specific information about a supplied resource
@@ -74,13 +77,11 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	var resp *svcsdk.DescribeClusterOutput
-	resp, err = rm.sdkapi.DescribeClusterWithContext(ctx, input)
+	resp, err = rm.sdkapi.DescribeCluster(ctx, input)
 	rm.metrics.RecordAPICall("READ_ONE", "DescribeCluster", err)
 	if err != nil {
-		if reqErr, ok := ackerr.AWSRequestFailure(err); ok && reqErr.StatusCode() == 404 {
-			return nil, ackerr.NotFound
-		}
-		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "NotFoundException" {
+		var awsErr smithy.APIError
+		if errors.As(err, &awsErr) && awsErr.ErrorCode() == "NotFoundException" {
 			return nil, ackerr.NotFound
 		}
 		return nil, err
@@ -92,17 +93,11 @@ func (rm *resourceManager) sdkFind(
 
 	if resp.ClusterInfo.BrokerNodeGroupInfo != nil {
 		f1 := &svcapitypes.BrokerNodeGroupInfo{}
-		if resp.ClusterInfo.BrokerNodeGroupInfo.BrokerAZDistribution != nil {
-			f1.BrokerAZDistribution = resp.ClusterInfo.BrokerNodeGroupInfo.BrokerAZDistribution
+		if resp.ClusterInfo.BrokerNodeGroupInfo.BrokerAZDistribution != "" {
+			f1.BrokerAZDistribution = aws.String(string(resp.ClusterInfo.BrokerNodeGroupInfo.BrokerAZDistribution))
 		}
 		if resp.ClusterInfo.BrokerNodeGroupInfo.ClientSubnets != nil {
-			f1f1 := []*string{}
-			for _, f1f1iter := range resp.ClusterInfo.BrokerNodeGroupInfo.ClientSubnets {
-				var f1f1elem string
-				f1f1elem = *f1f1iter
-				f1f1 = append(f1f1, &f1f1elem)
-			}
-			f1.ClientSubnets = f1f1
+			f1.ClientSubnets = aws.StringSlice(resp.ClusterInfo.BrokerNodeGroupInfo.ClientSubnets)
 		}
 		if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 			f1f2 := &svcapitypes.ConnectivityInfo{}
@@ -119,13 +114,7 @@ func (rm *resourceManager) sdkFind(
 			f1.InstanceType = resp.ClusterInfo.BrokerNodeGroupInfo.InstanceType
 		}
 		if resp.ClusterInfo.BrokerNodeGroupInfo.SecurityGroups != nil {
-			f1f4 := []*string{}
-			for _, f1f4iter := range resp.ClusterInfo.BrokerNodeGroupInfo.SecurityGroups {
-				var f1f4elem string
-				f1f4elem = *f1f4iter
-				f1f4 = append(f1f4, &f1f4elem)
-			}
-			f1.SecurityGroups = f1f4
+			f1.SecurityGroups = aws.StringSlice(resp.ClusterInfo.BrokerNodeGroupInfo.SecurityGroups)
 		}
 		if resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo != nil {
 			f1f5 := &svcapitypes.StorageInfo{}
@@ -137,12 +126,14 @@ func (rm *resourceManager) sdkFind(
 						f1f5f0f0.Enabled = resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.ProvisionedThroughput.Enabled
 					}
 					if resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.ProvisionedThroughput.VolumeThroughput != nil {
-						f1f5f0f0.VolumeThroughput = resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.ProvisionedThroughput.VolumeThroughput
+						volumeThroughputCopy := int64(*resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.ProvisionedThroughput.VolumeThroughput)
+						f1f5f0f0.VolumeThroughput = &volumeThroughputCopy
 					}
 					f1f5f0.ProvisionedThroughput = f1f5f0f0
 				}
 				if resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.VolumeSize != nil {
-					f1f5f0.VolumeSize = resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.VolumeSize
+					volumeSizeCopy := int64(*resp.ClusterInfo.BrokerNodeGroupInfo.StorageInfo.EbsStorageInfo.VolumeSize)
+					f1f5f0.VolumeSize = &volumeSizeCopy
 				}
 				f1f5.EBSStorageInfo = f1f5f0
 			}
@@ -175,13 +166,7 @@ func (rm *resourceManager) sdkFind(
 		if resp.ClusterInfo.ClientAuthentication.Tls != nil {
 			f2f1 := &svcapitypes.TLS{}
 			if resp.ClusterInfo.ClientAuthentication.Tls.CertificateAuthorityArnList != nil {
-				f2f1f0 := []*string{}
-				for _, f2f1f0iter := range resp.ClusterInfo.ClientAuthentication.Tls.CertificateAuthorityArnList {
-					var f2f1f0elem string
-					f2f1f0elem = *f2f1f0iter
-					f2f1f0 = append(f2f1f0, &f2f1f0elem)
-				}
-				f2f1.CertificateAuthorityARNList = f2f1f0
+				f2f1.CertificateAuthorityARNList = aws.StringSlice(resp.ClusterInfo.ClientAuthentication.Tls.CertificateAuthorityArnList)
 			}
 			if resp.ClusterInfo.ClientAuthentication.Tls.Enabled != nil {
 				f2f1.Enabled = resp.ClusterInfo.ClientAuthentication.Tls.Enabled
@@ -207,123 +192,118 @@ func (rm *resourceManager) sdkFind(
 		ko.Status.ACKResourceMetadata.ARN = &arn
 	}
 	if resp.ClusterInfo.EncryptionInfo != nil {
-		f8 := &svcapitypes.EncryptionInfo{}
+		f9 := &svcapitypes.EncryptionInfo{}
 		if resp.ClusterInfo.EncryptionInfo.EncryptionAtRest != nil {
-			f8f0 := &svcapitypes.EncryptionAtRest{}
+			f9f0 := &svcapitypes.EncryptionAtRest{}
 			if resp.ClusterInfo.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyId != nil {
-				f8f0.DataVolumeKMSKeyID = resp.ClusterInfo.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyId
+				f9f0.DataVolumeKMSKeyID = resp.ClusterInfo.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyId
 			}
-			f8.EncryptionAtRest = f8f0
+			f9.EncryptionAtRest = f9f0
 		}
 		if resp.ClusterInfo.EncryptionInfo.EncryptionInTransit != nil {
-			f8f1 := &svcapitypes.EncryptionInTransit{}
-			if resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.ClientBroker != nil {
-				f8f1.ClientBroker = resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.ClientBroker
+			f9f1 := &svcapitypes.EncryptionInTransit{}
+			if resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.ClientBroker != "" {
+				f9f1.ClientBroker = aws.String(string(resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.ClientBroker))
 			}
 			if resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.InCluster != nil {
-				f8f1.InCluster = resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.InCluster
+				f9f1.InCluster = resp.ClusterInfo.EncryptionInfo.EncryptionInTransit.InCluster
 			}
-			f8.EncryptionInTransit = f8f1
+			f9.EncryptionInTransit = f9f1
 		}
-		ko.Spec.EncryptionInfo = f8
+		ko.Spec.EncryptionInfo = f9
 	} else {
 		ko.Spec.EncryptionInfo = nil
 	}
-	if resp.ClusterInfo.EnhancedMonitoring != nil {
-		ko.Spec.EnhancedMonitoring = resp.ClusterInfo.EnhancedMonitoring
+	if resp.ClusterInfo.EnhancedMonitoring != "" {
+		ko.Spec.EnhancedMonitoring = aws.String(string(resp.ClusterInfo.EnhancedMonitoring))
 	} else {
 		ko.Spec.EnhancedMonitoring = nil
 	}
 	if resp.ClusterInfo.LoggingInfo != nil {
-		f10 := &svcapitypes.LoggingInfo{}
+		f11 := &svcapitypes.LoggingInfo{}
 		if resp.ClusterInfo.LoggingInfo.BrokerLogs != nil {
-			f10f0 := &svcapitypes.BrokerLogs{}
+			f11f0 := &svcapitypes.BrokerLogs{}
 			if resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
-				f10f0f0 := &svcapitypes.CloudWatchLogs{}
+				f11f0f0 := &svcapitypes.CloudWatchLogs{}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled != nil {
-					f10f0f0.Enabled = resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
+					f11f0f0.Enabled = resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
 				}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup != nil {
-					f10f0f0.LogGroup = resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
+					f11f0f0.LogGroup = resp.ClusterInfo.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
 				}
-				f10f0.CloudWatchLogs = f10f0f0
+				f11f0.CloudWatchLogs = f11f0f0
 			}
 			if resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose != nil {
-				f10f0f1 := &svcapitypes.Firehose{}
+				f11f0f1 := &svcapitypes.Firehose{}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose.DeliveryStream != nil {
-					f10f0f1.DeliveryStream = resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
+					f11f0f1.DeliveryStream = resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
 				}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose.Enabled != nil {
-					f10f0f1.Enabled = resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose.Enabled
+					f11f0f1.Enabled = resp.ClusterInfo.LoggingInfo.BrokerLogs.Firehose.Enabled
 				}
-				f10f0.Firehose = f10f0f1
+				f11f0.Firehose = f11f0f1
 			}
 			if resp.ClusterInfo.LoggingInfo.BrokerLogs.S3 != nil {
-				f10f0f2 := &svcapitypes.S3{}
+				f11f0f2 := &svcapitypes.S3{}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Bucket != nil {
-					f10f0f2.Bucket = resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Bucket
+					f11f0f2.Bucket = resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Bucket
 				}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Enabled != nil {
-					f10f0f2.Enabled = resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Enabled
+					f11f0f2.Enabled = resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Enabled
 				}
 				if resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Prefix != nil {
-					f10f0f2.Prefix = resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Prefix
+					f11f0f2.Prefix = resp.ClusterInfo.LoggingInfo.BrokerLogs.S3.Prefix
 				}
-				f10f0.S3 = f10f0f2
+				f11f0.S3 = f11f0f2
 			}
-			f10.BrokerLogs = f10f0
+			f11.BrokerLogs = f11f0
 		}
-		ko.Spec.LoggingInfo = f10
+		ko.Spec.LoggingInfo = f11
 	} else {
 		ko.Spec.LoggingInfo = nil
 	}
 	if resp.ClusterInfo.NumberOfBrokerNodes != nil {
-		ko.Spec.NumberOfBrokerNodes = resp.ClusterInfo.NumberOfBrokerNodes
+		numberOfBrokerNodesCopy := int64(*resp.ClusterInfo.NumberOfBrokerNodes)
+		ko.Spec.NumberOfBrokerNodes = &numberOfBrokerNodesCopy
 	} else {
 		ko.Spec.NumberOfBrokerNodes = nil
 	}
 	if resp.ClusterInfo.OpenMonitoring != nil {
-		f12 := &svcapitypes.OpenMonitoringInfo{}
+		f13 := &svcapitypes.OpenMonitoringInfo{}
 		if resp.ClusterInfo.OpenMonitoring.Prometheus != nil {
-			f12f0 := &svcapitypes.PrometheusInfo{}
+			f13f0 := &svcapitypes.PrometheusInfo{}
 			if resp.ClusterInfo.OpenMonitoring.Prometheus.JmxExporter != nil {
-				f12f0f0 := &svcapitypes.JmxExporterInfo{}
+				f13f0f0 := &svcapitypes.JmxExporterInfo{}
 				if resp.ClusterInfo.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker != nil {
-					f12f0f0.EnabledInBroker = resp.ClusterInfo.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker
+					f13f0f0.EnabledInBroker = resp.ClusterInfo.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker
 				}
-				f12f0.JmxExporter = f12f0f0
+				f13f0.JmxExporter = f13f0f0
 			}
 			if resp.ClusterInfo.OpenMonitoring.Prometheus.NodeExporter != nil {
-				f12f0f1 := &svcapitypes.NodeExporterInfo{}
+				f13f0f1 := &svcapitypes.NodeExporterInfo{}
 				if resp.ClusterInfo.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker != nil {
-					f12f0f1.EnabledInBroker = resp.ClusterInfo.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker
+					f13f0f1.EnabledInBroker = resp.ClusterInfo.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker
 				}
-				f12f0.NodeExporter = f12f0f1
+				f13f0.NodeExporter = f13f0f1
 			}
-			f12.Prometheus = f12f0
+			f13.Prometheus = f13f0
 		}
-		ko.Spec.OpenMonitoring = f12
+		ko.Spec.OpenMonitoring = f13
 	} else {
 		ko.Spec.OpenMonitoring = nil
 	}
-	if resp.ClusterInfo.State != nil {
-		ko.Status.State = resp.ClusterInfo.State
+	if resp.ClusterInfo.State != "" {
+		ko.Status.State = aws.String(string(resp.ClusterInfo.State))
 	} else {
 		ko.Status.State = nil
 	}
-	if resp.ClusterInfo.StorageMode != nil {
-		ko.Spec.StorageMode = resp.ClusterInfo.StorageMode
+	if resp.ClusterInfo.StorageMode != "" {
+		ko.Spec.StorageMode = aws.String(string(resp.ClusterInfo.StorageMode))
 	} else {
 		ko.Spec.StorageMode = nil
 	}
 	if resp.ClusterInfo.Tags != nil {
-		f16 := map[string]*string{}
-		for f16key, f16valiter := range resp.ClusterInfo.Tags {
-			var f16val string
-			f16val = *f16valiter
-			f16[f16key] = &f16val
-		}
-		ko.Spec.Tags = f16
+		ko.Spec.Tags = aws.StringMap(resp.ClusterInfo.Tags)
 	} else {
 		ko.Spec.Tags = nil
 	}
@@ -375,7 +355,7 @@ func (rm *resourceManager) newDescribeRequestPayload(
 	res := &svcsdk.DescribeClusterInput{}
 
 	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		res.SetClusterArn(string(*r.ko.Status.ACKResourceMetadata.ARN))
+		res.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 
 	return res, nil
@@ -400,7 +380,7 @@ func (rm *resourceManager) sdkCreate(
 
 	var resp *svcsdk.CreateClusterOutput
 	_ = resp
-	resp, err = rm.sdkapi.CreateClusterWithContext(ctx, input)
+	resp, err = rm.sdkapi.CreateCluster(ctx, input)
 	rm.metrics.RecordAPICall("CREATE", "CreateCluster", err)
 	if err != nil {
 		return nil, err
@@ -421,8 +401,8 @@ func (rm *resourceManager) sdkCreate(
 	} else {
 		ko.Spec.Name = nil
 	}
-	if resp.State != nil {
-		ko.Status.State = resp.State
+	if resp.State != "" {
+		ko.Status.State = aws.String(string(resp.State))
 	} else {
 		ko.Status.State = nil
 	}
@@ -446,227 +426,218 @@ func (rm *resourceManager) newCreateRequestPayload(
 	res := &svcsdk.CreateClusterInput{}
 
 	if r.ko.Spec.BrokerNodeGroupInfo != nil {
-		f0 := &svcsdk.BrokerNodeGroupInfo{}
+		f0 := &svcsdktypes.BrokerNodeGroupInfo{}
 		if r.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution != nil {
-			f0.SetBrokerAZDistribution(*r.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution)
+			f0.BrokerAZDistribution = svcsdktypes.BrokerAZDistribution(*r.ko.Spec.BrokerNodeGroupInfo.BrokerAZDistribution)
 		}
 		if r.ko.Spec.BrokerNodeGroupInfo.ClientSubnets != nil {
-			f0f1 := []*string{}
-			for _, f0f1iter := range r.ko.Spec.BrokerNodeGroupInfo.ClientSubnets {
-				var f0f1elem string
-				f0f1elem = *f0f1iter
-				f0f1 = append(f0f1, &f0f1elem)
-			}
-			f0.SetClientSubnets(f0f1)
+			f0.ClientSubnets = aws.ToStringSlice(r.ko.Spec.BrokerNodeGroupInfo.ClientSubnets)
 		}
 		if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
-			f0f2 := &svcsdk.ConnectivityInfo{}
+			f0f2 := &svcsdktypes.ConnectivityInfo{}
 			if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
-				f0f2f0 := &svcsdk.PublicAccess{}
+				f0f2f0 := &svcsdktypes.PublicAccess{}
 				if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
-					f0f2f0.SetType(*r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type)
+					f0f2f0.Type = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 				}
-				f0f2.SetPublicAccess(f0f2f0)
+				f0f2.PublicAccess = f0f2f0
 			}
-			f0.SetConnectivityInfo(f0f2)
+			f0.ConnectivityInfo = f0f2
 		}
 		if r.ko.Spec.BrokerNodeGroupInfo.InstanceType != nil {
-			f0.SetInstanceType(*r.ko.Spec.BrokerNodeGroupInfo.InstanceType)
+			f0.InstanceType = r.ko.Spec.BrokerNodeGroupInfo.InstanceType
 		}
 		if r.ko.Spec.BrokerNodeGroupInfo.SecurityGroups != nil {
-			f0f4 := []*string{}
-			for _, f0f4iter := range r.ko.Spec.BrokerNodeGroupInfo.SecurityGroups {
-				var f0f4elem string
-				f0f4elem = *f0f4iter
-				f0f4 = append(f0f4, &f0f4elem)
-			}
-			f0.SetSecurityGroups(f0f4)
+			f0.SecurityGroups = aws.ToStringSlice(r.ko.Spec.BrokerNodeGroupInfo.SecurityGroups)
 		}
 		if r.ko.Spec.BrokerNodeGroupInfo.StorageInfo != nil {
-			f0f5 := &svcsdk.StorageInfo{}
+			f0f5 := &svcsdktypes.StorageInfo{}
 			if r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo != nil {
-				f0f5f0 := &svcsdk.EBSStorageInfo{}
+				f0f5f0 := &svcsdktypes.EBSStorageInfo{}
 				if r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput != nil {
-					f0f5f0f0 := &svcsdk.ProvisionedThroughput{}
+					f0f5f0f0 := &svcsdktypes.ProvisionedThroughput{}
 					if r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput.Enabled != nil {
-						f0f5f0f0.SetEnabled(*r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput.Enabled)
+						f0f5f0f0.Enabled = r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput.Enabled
 					}
 					if r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput.VolumeThroughput != nil {
-						f0f5f0f0.SetVolumeThroughput(*r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput.VolumeThroughput)
+						volumeThroughputCopy0 := *r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.ProvisionedThroughput.VolumeThroughput
+						if volumeThroughputCopy0 > math.MaxInt32 || volumeThroughputCopy0 < math.MinInt32 {
+							return nil, fmt.Errorf("error: field VolumeThroughput is of type int32")
+						}
+						volumeThroughputCopy := int32(volumeThroughputCopy0)
+						f0f5f0f0.VolumeThroughput = &volumeThroughputCopy
 					}
-					f0f5f0.SetProvisionedThroughput(f0f5f0f0)
+					f0f5f0.ProvisionedThroughput = f0f5f0f0
 				}
 				if r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize != nil {
-					f0f5f0.SetVolumeSize(*r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize)
+					volumeSizeCopy0 := *r.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
+					if volumeSizeCopy0 > math.MaxInt32 || volumeSizeCopy0 < math.MinInt32 {
+						return nil, fmt.Errorf("error: field VolumeSize is of type int32")
+					}
+					volumeSizeCopy := int32(volumeSizeCopy0)
+					f0f5f0.VolumeSize = &volumeSizeCopy
 				}
-				f0f5.SetEbsStorageInfo(f0f5f0)
+				f0f5.EbsStorageInfo = f0f5f0
 			}
-			f0.SetStorageInfo(f0f5)
+			f0.StorageInfo = f0f5
 		}
-		res.SetBrokerNodeGroupInfo(f0)
+		res.BrokerNodeGroupInfo = f0
 	}
 	if r.ko.Spec.ClientAuthentication != nil {
-		f1 := &svcsdk.ClientAuthentication{}
+		f1 := &svcsdktypes.ClientAuthentication{}
 		if r.ko.Spec.ClientAuthentication.SASL != nil {
-			f1f0 := &svcsdk.Sasl{}
+			f1f0 := &svcsdktypes.Sasl{}
 			if r.ko.Spec.ClientAuthentication.SASL.IAM != nil {
-				f1f0f0 := &svcsdk.Iam{}
+				f1f0f0 := &svcsdktypes.Iam{}
 				if r.ko.Spec.ClientAuthentication.SASL.IAM.Enabled != nil {
-					f1f0f0.SetEnabled(*r.ko.Spec.ClientAuthentication.SASL.IAM.Enabled)
+					f1f0f0.Enabled = r.ko.Spec.ClientAuthentication.SASL.IAM.Enabled
 				}
-				f1f0.SetIam(f1f0f0)
+				f1f0.Iam = f1f0f0
 			}
 			if r.ko.Spec.ClientAuthentication.SASL.SCRAM != nil {
-				f1f0f1 := &svcsdk.Scram{}
+				f1f0f1 := &svcsdktypes.Scram{}
 				if r.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled != nil {
-					f1f0f1.SetEnabled(*r.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled)
+					f1f0f1.Enabled = r.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled
 				}
-				f1f0.SetScram(f1f0f1)
+				f1f0.Scram = f1f0f1
 			}
-			f1.SetSasl(f1f0)
+			f1.Sasl = f1f0
 		}
 		if r.ko.Spec.ClientAuthentication.TLS != nil {
-			f1f1 := &svcsdk.Tls{}
+			f1f1 := &svcsdktypes.Tls{}
 			if r.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList != nil {
-				f1f1f0 := []*string{}
-				for _, f1f1f0iter := range r.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList {
-					var f1f1f0elem string
-					f1f1f0elem = *f1f1f0iter
-					f1f1f0 = append(f1f1f0, &f1f1f0elem)
-				}
-				f1f1.SetCertificateAuthorityArnList(f1f1f0)
+				f1f1.CertificateAuthorityArnList = aws.ToStringSlice(r.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList)
 			}
 			if r.ko.Spec.ClientAuthentication.TLS.Enabled != nil {
-				f1f1.SetEnabled(*r.ko.Spec.ClientAuthentication.TLS.Enabled)
+				f1f1.Enabled = r.ko.Spec.ClientAuthentication.TLS.Enabled
 			}
-			f1.SetTls(f1f1)
+			f1.Tls = f1f1
 		}
 		if r.ko.Spec.ClientAuthentication.Unauthenticated != nil {
-			f1f2 := &svcsdk.Unauthenticated{}
+			f1f2 := &svcsdktypes.Unauthenticated{}
 			if r.ko.Spec.ClientAuthentication.Unauthenticated.Enabled != nil {
-				f1f2.SetEnabled(*r.ko.Spec.ClientAuthentication.Unauthenticated.Enabled)
+				f1f2.Enabled = r.ko.Spec.ClientAuthentication.Unauthenticated.Enabled
 			}
-			f1.SetUnauthenticated(f1f2)
+			f1.Unauthenticated = f1f2
 		}
-		res.SetClientAuthentication(f1)
+		res.ClientAuthentication = f1
 	}
 	if r.ko.Spec.Name != nil {
-		res.SetClusterName(*r.ko.Spec.Name)
+		res.ClusterName = r.ko.Spec.Name
 	}
 	if r.ko.Spec.ConfigurationInfo != nil {
-		f3 := &svcsdk.ConfigurationInfo{}
+		f3 := &svcsdktypes.ConfigurationInfo{}
 		if r.ko.Spec.ConfigurationInfo.ARN != nil {
-			f3.SetArn(*r.ko.Spec.ConfigurationInfo.ARN)
+			f3.Arn = r.ko.Spec.ConfigurationInfo.ARN
 		}
 		if r.ko.Spec.ConfigurationInfo.Revision != nil {
-			f3.SetRevision(*r.ko.Spec.ConfigurationInfo.Revision)
+			f3.Revision = r.ko.Spec.ConfigurationInfo.Revision
 		}
-		res.SetConfigurationInfo(f3)
+		res.ConfigurationInfo = f3
 	}
 	if r.ko.Spec.EncryptionInfo != nil {
-		f4 := &svcsdk.EncryptionInfo{}
+		f4 := &svcsdktypes.EncryptionInfo{}
 		if r.ko.Spec.EncryptionInfo.EncryptionAtRest != nil {
-			f4f0 := &svcsdk.EncryptionAtRest{}
+			f4f0 := &svcsdktypes.EncryptionAtRest{}
 			if r.ko.Spec.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyID != nil {
-				f4f0.SetDataVolumeKMSKeyId(*r.ko.Spec.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyID)
+				f4f0.DataVolumeKMSKeyId = r.ko.Spec.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyID
 			}
-			f4.SetEncryptionAtRest(f4f0)
+			f4.EncryptionAtRest = f4f0
 		}
 		if r.ko.Spec.EncryptionInfo.EncryptionInTransit != nil {
-			f4f1 := &svcsdk.EncryptionInTransit{}
+			f4f1 := &svcsdktypes.EncryptionInTransit{}
 			if r.ko.Spec.EncryptionInfo.EncryptionInTransit.ClientBroker != nil {
-				f4f1.SetClientBroker(*r.ko.Spec.EncryptionInfo.EncryptionInTransit.ClientBroker)
+				f4f1.ClientBroker = svcsdktypes.ClientBroker(*r.ko.Spec.EncryptionInfo.EncryptionInTransit.ClientBroker)
 			}
 			if r.ko.Spec.EncryptionInfo.EncryptionInTransit.InCluster != nil {
-				f4f1.SetInCluster(*r.ko.Spec.EncryptionInfo.EncryptionInTransit.InCluster)
+				f4f1.InCluster = r.ko.Spec.EncryptionInfo.EncryptionInTransit.InCluster
 			}
-			f4.SetEncryptionInTransit(f4f1)
+			f4.EncryptionInTransit = f4f1
 		}
-		res.SetEncryptionInfo(f4)
+		res.EncryptionInfo = f4
 	}
 	if r.ko.Spec.EnhancedMonitoring != nil {
-		res.SetEnhancedMonitoring(*r.ko.Spec.EnhancedMonitoring)
+		res.EnhancedMonitoring = svcsdktypes.EnhancedMonitoring(*r.ko.Spec.EnhancedMonitoring)
 	}
 	if r.ko.Spec.KafkaVersion != nil {
-		res.SetKafkaVersion(*r.ko.Spec.KafkaVersion)
+		res.KafkaVersion = r.ko.Spec.KafkaVersion
 	}
 	if r.ko.Spec.LoggingInfo != nil {
-		f7 := &svcsdk.LoggingInfo{}
+		f7 := &svcsdktypes.LoggingInfo{}
 		if r.ko.Spec.LoggingInfo.BrokerLogs != nil {
-			f7f0 := &svcsdk.BrokerLogs{}
+			f7f0 := &svcsdktypes.BrokerLogs{}
 			if r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
-				f7f0f0 := &svcsdk.CloudWatchLogs{}
+				f7f0f0 := &svcsdktypes.CloudWatchLogs{}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled != nil {
-					f7f0f0.SetEnabled(*r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled)
+					f7f0f0.Enabled = r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
 				}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup != nil {
-					f7f0f0.SetLogGroup(*r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup)
+					f7f0f0.LogGroup = r.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
 				}
-				f7f0.SetCloudWatchLogs(f7f0f0)
+				f7f0.CloudWatchLogs = f7f0f0
 			}
 			if r.ko.Spec.LoggingInfo.BrokerLogs.Firehose != nil {
-				f7f0f1 := &svcsdk.Firehose{}
+				f7f0f1 := &svcsdktypes.Firehose{}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.Firehose.DeliveryStream != nil {
-					f7f0f1.SetDeliveryStream(*r.ko.Spec.LoggingInfo.BrokerLogs.Firehose.DeliveryStream)
+					f7f0f1.DeliveryStream = r.ko.Spec.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
 				}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.Firehose.Enabled != nil {
-					f7f0f1.SetEnabled(*r.ko.Spec.LoggingInfo.BrokerLogs.Firehose.Enabled)
+					f7f0f1.Enabled = r.ko.Spec.LoggingInfo.BrokerLogs.Firehose.Enabled
 				}
-				f7f0.SetFirehose(f7f0f1)
+				f7f0.Firehose = f7f0f1
 			}
 			if r.ko.Spec.LoggingInfo.BrokerLogs.S3 != nil {
-				f7f0f2 := &svcsdk.S3{}
+				f7f0f2 := &svcsdktypes.S3{}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.S3.Bucket != nil {
-					f7f0f2.SetBucket(*r.ko.Spec.LoggingInfo.BrokerLogs.S3.Bucket)
+					f7f0f2.Bucket = r.ko.Spec.LoggingInfo.BrokerLogs.S3.Bucket
 				}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.S3.Enabled != nil {
-					f7f0f2.SetEnabled(*r.ko.Spec.LoggingInfo.BrokerLogs.S3.Enabled)
+					f7f0f2.Enabled = r.ko.Spec.LoggingInfo.BrokerLogs.S3.Enabled
 				}
 				if r.ko.Spec.LoggingInfo.BrokerLogs.S3.Prefix != nil {
-					f7f0f2.SetPrefix(*r.ko.Spec.LoggingInfo.BrokerLogs.S3.Prefix)
+					f7f0f2.Prefix = r.ko.Spec.LoggingInfo.BrokerLogs.S3.Prefix
 				}
-				f7f0.SetS3(f7f0f2)
+				f7f0.S3 = f7f0f2
 			}
-			f7.SetBrokerLogs(f7f0)
+			f7.BrokerLogs = f7f0
 		}
-		res.SetLoggingInfo(f7)
+		res.LoggingInfo = f7
 	}
 	if r.ko.Spec.NumberOfBrokerNodes != nil {
-		res.SetNumberOfBrokerNodes(*r.ko.Spec.NumberOfBrokerNodes)
+		numberOfBrokerNodesCopy0 := *r.ko.Spec.NumberOfBrokerNodes
+		if numberOfBrokerNodesCopy0 > math.MaxInt32 || numberOfBrokerNodesCopy0 < math.MinInt32 {
+			return nil, fmt.Errorf("error: field NumberOfBrokerNodes is of type int32")
+		}
+		numberOfBrokerNodesCopy := int32(numberOfBrokerNodesCopy0)
+		res.NumberOfBrokerNodes = &numberOfBrokerNodesCopy
 	}
 	if r.ko.Spec.OpenMonitoring != nil {
-		f9 := &svcsdk.OpenMonitoringInfo{}
+		f9 := &svcsdktypes.OpenMonitoringInfo{}
 		if r.ko.Spec.OpenMonitoring.Prometheus != nil {
-			f9f0 := &svcsdk.PrometheusInfo{}
+			f9f0 := &svcsdktypes.PrometheusInfo{}
 			if r.ko.Spec.OpenMonitoring.Prometheus.JmxExporter != nil {
-				f9f0f0 := &svcsdk.JmxExporterInfo{}
+				f9f0f0 := &svcsdktypes.JmxExporterInfo{}
 				if r.ko.Spec.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker != nil {
-					f9f0f0.SetEnabledInBroker(*r.ko.Spec.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker)
+					f9f0f0.EnabledInBroker = r.ko.Spec.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker
 				}
-				f9f0.SetJmxExporter(f9f0f0)
+				f9f0.JmxExporter = f9f0f0
 			}
 			if r.ko.Spec.OpenMonitoring.Prometheus.NodeExporter != nil {
-				f9f0f1 := &svcsdk.NodeExporterInfo{}
+				f9f0f1 := &svcsdktypes.NodeExporterInfo{}
 				if r.ko.Spec.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker != nil {
-					f9f0f1.SetEnabledInBroker(*r.ko.Spec.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker)
+					f9f0f1.EnabledInBroker = r.ko.Spec.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker
 				}
-				f9f0.SetNodeExporter(f9f0f1)
+				f9f0.NodeExporter = f9f0f1
 			}
-			f9.SetPrometheus(f9f0)
+			f9.Prometheus = f9f0
 		}
-		res.SetOpenMonitoring(f9)
+		res.OpenMonitoring = f9
 	}
 	if r.ko.Spec.StorageMode != nil {
-		res.SetStorageMode(*r.ko.Spec.StorageMode)
+		res.StorageMode = svcsdktypes.StorageMode(*r.ko.Spec.StorageMode)
 	}
 	if r.ko.Spec.Tags != nil {
-		f11 := map[string]*string{}
-		for f11key, f11valiter := range r.ko.Spec.Tags {
-			var f11val string
-			f11val = *f11valiter
-			f11[f11key] = &f11val
-		}
-		res.SetTags(f11)
+		res.Tags = aws.ToStringMap(r.ko.Spec.Tags)
 	}
 
 	return res, nil
@@ -711,7 +682,7 @@ func (rm *resourceManager) sdkDelete(
 	}
 	var resp *svcsdk.DeleteClusterOutput
 	_ = resp
-	resp, err = rm.sdkapi.DeleteClusterWithContext(ctx, input)
+	resp, err = rm.sdkapi.DeleteCluster(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteCluster", err)
 	return nil, err
 }
@@ -724,7 +695,7 @@ func (rm *resourceManager) newDeleteRequestPayload(
 	res := &svcsdk.DeleteClusterInput{}
 
 	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		res.SetClusterArn(string(*r.ko.Status.ACKResourceMetadata.ARN))
+		res.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 
 	return res, nil
@@ -832,11 +803,12 @@ func (rm *resourceManager) terminalAWSError(err error) bool {
 	if err == nil {
 		return false
 	}
-	awsErr, ok := ackerr.AWSError(err)
-	if !ok {
+
+	var terminalErr smithy.APIError
+	if !errors.As(err, &terminalErr) {
 		return false
 	}
-	switch awsErr.Code() {
+	switch terminalErr.ErrorCode() {
 	case "BadRequestException":
 		return true
 	default:

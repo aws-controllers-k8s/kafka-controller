@@ -28,8 +28,9 @@ import (
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
-	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/kafka"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/kafka"
+	smithy "github.com/aws/smithy-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,8 +41,7 @@ import (
 var (
 	_ = &metav1.Time{}
 	_ = strings.ToLower("")
-	_ = &aws.JSONValue{}
-	_ = &svcsdk.Kafka{}
+	_ = &svcsdk.Client{}
 	_ = &svcapitypes.Configuration{}
 	_ = ackv1alpha1.AWSAccountID("")
 	_ = &ackerr.NotFound
@@ -49,6 +49,7 @@ var (
 	_ = &reflect.Value{}
 	_ = fmt.Sprintf("")
 	_ = &ackrequeue.NoRequeue{}
+	_ = &aws.Config{}
 )
 
 // sdkFind returns SDK-specific information about a supplied resource
@@ -74,13 +75,11 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	var resp *svcsdk.DescribeConfigurationOutput
-	resp, err = rm.sdkapi.DescribeConfigurationWithContext(ctx, input)
+	resp, err = rm.sdkapi.DescribeConfiguration(ctx, input)
 	rm.metrics.RecordAPICall("READ_ONE", "DescribeConfiguration", err)
 	if err != nil {
-		if reqErr, ok := ackerr.AWSRequestFailure(err); ok && reqErr.StatusCode() == 404 {
-			return nil, ackerr.NotFound
-		}
-		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "NotFoundException" {
+		var awsErr smithy.APIError
+		if errors.As(err, &awsErr) && awsErr.ErrorCode() == "NotFoundException" {
 			return nil, ackerr.NotFound
 		}
 		return nil, err
@@ -108,13 +107,7 @@ func (rm *resourceManager) sdkFind(
 		ko.Spec.Description = nil
 	}
 	if resp.KafkaVersions != nil {
-		f3 := []*string{}
-		for _, f3iter := range resp.KafkaVersions {
-			var f3elem string
-			f3elem = *f3iter
-			f3 = append(f3, &f3elem)
-		}
-		ko.Spec.KafkaVersions = f3
+		ko.Spec.KafkaVersions = aws.StringSlice(resp.KafkaVersions)
 	} else {
 		ko.Spec.KafkaVersions = nil
 	}
@@ -138,8 +131,8 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Spec.Name = nil
 	}
-	if resp.State != nil {
-		ko.Status.State = resp.State
+	if resp.State != "" {
+		ko.Status.State = aws.String(string(resp.State))
 	} else {
 		ko.Status.State = nil
 	}
@@ -166,7 +159,7 @@ func (rm *resourceManager) newDescribeRequestPayload(
 	res := &svcsdk.DescribeConfigurationInput{}
 
 	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		res.SetArn(string(*r.ko.Status.ACKResourceMetadata.ARN))
+		res.Arn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 
 	return res, nil
@@ -191,7 +184,7 @@ func (rm *resourceManager) sdkCreate(
 
 	var resp *svcsdk.CreateConfigurationOutput
 	_ = resp
-	resp, err = rm.sdkapi.CreateConfigurationWithContext(ctx, input)
+	resp, err = rm.sdkapi.CreateConfiguration(ctx, input)
 	rm.metrics.RecordAPICall("CREATE", "CreateConfiguration", err)
 	if err != nil {
 		return nil, err
@@ -232,8 +225,8 @@ func (rm *resourceManager) sdkCreate(
 	} else {
 		ko.Spec.Name = nil
 	}
-	if resp.State != nil {
-		ko.Status.State = resp.State
+	if resp.State != "" {
+		ko.Status.State = aws.String(string(resp.State))
 	} else {
 		ko.Status.State = nil
 	}
@@ -251,22 +244,16 @@ func (rm *resourceManager) newCreateRequestPayload(
 	res := &svcsdk.CreateConfigurationInput{}
 
 	if r.ko.Spec.Description != nil {
-		res.SetDescription(*r.ko.Spec.Description)
+		res.Description = r.ko.Spec.Description
 	}
 	if r.ko.Spec.KafkaVersions != nil {
-		f1 := []*string{}
-		for _, f1iter := range r.ko.Spec.KafkaVersions {
-			var f1elem string
-			f1elem = *f1iter
-			f1 = append(f1, &f1elem)
-		}
-		res.SetKafkaVersions(f1)
+		res.KafkaVersions = aws.ToStringSlice(r.ko.Spec.KafkaVersions)
 	}
 	if r.ko.Spec.Name != nil {
-		res.SetName(*r.ko.Spec.Name)
+		res.Name = r.ko.Spec.Name
 	}
 	if r.ko.Spec.ServerProperties != nil {
-		res.SetServerProperties(r.ko.Spec.ServerProperties)
+		res.ServerProperties = r.ko.Spec.ServerProperties
 	}
 
 	return res, nil
@@ -292,7 +279,7 @@ func (rm *resourceManager) sdkUpdate(
 
 	var resp *svcsdk.UpdateConfigurationOutput
 	_ = resp
-	resp, err = rm.sdkapi.UpdateConfigurationWithContext(ctx, input)
+	resp, err = rm.sdkapi.UpdateConfiguration(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "UpdateConfiguration", err)
 	if err != nil {
 		return nil, err
@@ -338,13 +325,13 @@ func (rm *resourceManager) newUpdateRequestPayload(
 	res := &svcsdk.UpdateConfigurationInput{}
 
 	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		res.SetArn(string(*r.ko.Status.ACKResourceMetadata.ARN))
+		res.Arn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 	if r.ko.Spec.Description != nil {
-		res.SetDescription(*r.ko.Spec.Description)
+		res.Description = r.ko.Spec.Description
 	}
 	if r.ko.Spec.ServerProperties != nil {
-		res.SetServerProperties(r.ko.Spec.ServerProperties)
+		res.ServerProperties = r.ko.Spec.ServerProperties
 	}
 
 	return res, nil
@@ -366,7 +353,7 @@ func (rm *resourceManager) sdkDelete(
 	}
 	var resp *svcsdk.DeleteConfigurationOutput
 	_ = resp
-	resp, err = rm.sdkapi.DeleteConfigurationWithContext(ctx, input)
+	resp, err = rm.sdkapi.DeleteConfiguration(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteConfiguration", err)
 	return nil, err
 }
@@ -379,7 +366,7 @@ func (rm *resourceManager) newDeleteRequestPayload(
 	res := &svcsdk.DeleteConfigurationInput{}
 
 	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		res.SetArn(string(*r.ko.Status.ACKResourceMetadata.ARN))
+		res.Arn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 
 	return res, nil

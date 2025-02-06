@@ -22,17 +22,17 @@ import (
 
 // ClusterSpec defines the desired state of Cluster.
 //
-// Returns information about a cluster of either the provisioned or the serverless
-// type.
+// Returns information about a cluster.
 type ClusterSpec struct {
 	AssociatedSCRAMSecretRefs []*ackv1alpha1.AWSResourceReferenceWrapper `json:"associatedSCRAMSecretRefs,omitempty"`
 	AssociatedSCRAMSecrets    []*string                                  `json:"associatedSCRAMSecrets,omitempty"`
-	// Information about the brokers.
+	// Information about the broker nodes in the cluster.
 	// +kubebuilder:validation:Required
 	BrokerNodeGroupInfo *BrokerNodeGroupInfo `json:"brokerNodeGroupInfo"`
 	// Includes all client authentication related information.
 	ClientAuthentication *ClientAuthentication `json:"clientAuthentication,omitempty"`
-	// Represents the configuration that you want MSK to use for the cluster.
+	// Represents the configuration that you want MSK to use for the brokers in
+	// a cluster.
 	ConfigurationInfo *ConfigurationInfo `json:"configurationInfo,omitempty"`
 	// Includes all encryption-related information.
 	EncryptionInfo *EncryptionInfo `json:"encryptionInfo,omitempty"`
@@ -41,13 +41,12 @@ type ClusterSpec struct {
 	EnhancedMonitoring *string `json:"enhancedMonitoring,omitempty"`
 	// The version of Apache Kafka.
 	// +kubebuilder:validation:Required
-	KafkaVersion *string `json:"kafkaVersion"`
-	// LoggingInfo details.
-	LoggingInfo *LoggingInfo `json:"loggingInfo,omitempty"`
+	KafkaVersion *string      `json:"kafkaVersion"`
+	LoggingInfo  *LoggingInfo `json:"loggingInfo,omitempty"`
 	// The name of the cluster.
 	// +kubebuilder:validation:Required
 	Name *string `json:"name"`
-	// The number of Apache Kafka broker nodes in the Amazon MSK cluster.
+	// The number of broker nodes in the cluster.
 	// +kubebuilder:validation:Required
 	NumberOfBrokerNodes *int64 `json:"numberOfBrokerNodes"`
 	// The settings for open monitoring.
