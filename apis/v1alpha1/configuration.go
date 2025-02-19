@@ -26,17 +26,23 @@ import (
 type ConfigurationSpec struct {
 
 	// The description of the configuration.
+
 	Description *string `json:"description,omitempty"`
 	// The versions of Apache Kafka with which you can use this MSK configuration.
+
 	KafkaVersions []*string `json:"kafkaVersions,omitempty"`
 	// The name of the configuration.
+
 	// +kubebuilder:validation:Required
+
 	Name *string `json:"name"`
 	// Contents of the server.properties file. When using the API, you must ensure
 	// that the contents of the file are base64 encoded. When using the AWS Management
 	// Console, the SDK, or the AWS CLI, the contents of server.properties can be
 	// in plaintext.
+
 	// +kubebuilder:validation:Required
+
 	ServerProperties []byte `json:"serverProperties"`
 }
 
@@ -47,7 +53,7 @@ type ConfigurationStatus struct {
 	// constructed ARN for the resource
 	// +kubebuilder:validation:Optional
 	ACKResourceMetadata *ackv1alpha1.ResourceMetadata `json:"ackResourceMetadata"`
-	// All CRS managed by ACK have a common `Status.Conditions` member that
+	// All CRs managed by ACK have a common `Status.Conditions` member that
 	// contains a collection of `ackv1alpha1.Condition` objects that describe
 	// the various terminal states of the CR and its backend AWS service API
 	// resource

@@ -66,7 +66,8 @@ spec:
                   type: string
                 type: array
               brokerNodeGroupInfo:
-                description: Information about the broker nodes in the cluster.
+                description: Describes the setup to be used for Apache Kafka broker
+                  nodes in the cluster.
                 properties:
                   brokerAZDistribution:
                     description: |-
@@ -125,7 +126,7 @@ spec:
                     type: object
                 type: object
               clientAuthentication:
-                description: Includes all client authentication related information.
+                description: Includes all client authentication information.
                 properties:
                   sasl:
                     description: Details for client authentication using SASL.
@@ -160,9 +161,7 @@ spec:
                     type: object
                 type: object
               configurationInfo:
-                description: |-
-                  Represents the configuration that you want MSK to use for the brokers in
-                  a cluster.
+                description: Specifies the configuration to use for the brokers.
                 properties:
                   arn:
                     type: string
@@ -171,7 +170,10 @@ spec:
                     type: integer
                 type: object
               encryptionInfo:
-                description: Includes all encryption-related information.
+                description: |-
+                  Includes encryption-related information, such as the AWS KMS key used for
+                  encrypting data at rest and whether you want MSK to encrypt your data in
+                  transit.
                 properties:
                   encryptionAtRest:
                     description: The data-volume encryption details.
@@ -190,12 +192,8 @@ spec:
                     type: object
                 type: object
               enhancedMonitoring:
-                description: |-
-                  Specifies the level of monitoring for the MSK cluster. The possible values
-                  are DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER, and PER_TOPIC_PER_PARTITION.
                 type: string
               kafkaVersion:
-                description: The version of Apache Kafka.
                 type: string
               loggingInfo:
                 properties:
@@ -227,14 +225,12 @@ spec:
                     type: object
                 type: object
               name:
-                description: The name of the cluster.
                 type: string
               numberOfBrokerNodes:
-                description: The number of broker nodes in the cluster.
                 format: int64
                 type: integer
               openMonitoring:
-                description: The settings for open monitoring.
+                description: JMX and Node monitoring for the MSK cluster.
                 properties:
                   prometheus:
                     description: Prometheus settings.
@@ -256,12 +252,10 @@ spec:
                     type: object
                 type: object
               storageMode:
-                description: This controls storage mode for supported storage tiers.
                 type: string
               tags:
                 additionalProperties:
                   type: string
-                description: Create tags when creating the cluster.
                 type: object
             required:
             - brokerNodeGroupInfo
@@ -323,7 +317,7 @@ spec:
                 type: string
               conditions:
                 description: |-
-                  All CRS managed by ACK have a common `Status.Conditions` member that
+                  All CRs managed by ACK have a common `Status.Conditions` member that
                   contains a collection of `ackv1alpha1.Condition` objects that describe
                   the various terminal states of the CR and its backend AWS service API
                   resource

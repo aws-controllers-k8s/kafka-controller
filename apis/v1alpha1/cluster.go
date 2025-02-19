@@ -25,35 +25,52 @@ import (
 // Returns information about a cluster.
 type ClusterSpec struct {
 	AssociatedSCRAMSecretRefs []*ackv1alpha1.AWSResourceReferenceWrapper `json:"associatedSCRAMSecretRefs,omitempty"`
-	AssociatedSCRAMSecrets    []*string                                  `json:"associatedSCRAMSecrets,omitempty"`
+
+	AssociatedSCRAMSecrets []*string `json:"associatedSCRAMSecrets,omitempty"`
 	// Information about the broker nodes in the cluster.
+
 	// +kubebuilder:validation:Required
+
 	BrokerNodeGroupInfo *BrokerNodeGroupInfo `json:"brokerNodeGroupInfo"`
 	// Includes all client authentication related information.
+
 	ClientAuthentication *ClientAuthentication `json:"clientAuthentication,omitempty"`
 	// Represents the configuration that you want MSK to use for the brokers in
 	// a cluster.
+
 	ConfigurationInfo *ConfigurationInfo `json:"configurationInfo,omitempty"`
 	// Includes all encryption-related information.
+
 	EncryptionInfo *EncryptionInfo `json:"encryptionInfo,omitempty"`
 	// Specifies the level of monitoring for the MSK cluster. The possible values
 	// are DEFAULT, PER_BROKER, PER_TOPIC_PER_BROKER, and PER_TOPIC_PER_PARTITION.
+
 	EnhancedMonitoring *string `json:"enhancedMonitoring,omitempty"`
 	// The version of Apache Kafka.
+
 	// +kubebuilder:validation:Required
-	KafkaVersion *string      `json:"kafkaVersion"`
-	LoggingInfo  *LoggingInfo `json:"loggingInfo,omitempty"`
+
+	KafkaVersion *string `json:"kafkaVersion"`
+
+	LoggingInfo *LoggingInfo `json:"loggingInfo,omitempty"`
 	// The name of the cluster.
+
 	// +kubebuilder:validation:Required
+
 	Name *string `json:"name"`
 	// The number of broker nodes in the cluster.
+
 	// +kubebuilder:validation:Required
+
 	NumberOfBrokerNodes *int64 `json:"numberOfBrokerNodes"`
 	// The settings for open monitoring.
+
 	OpenMonitoring *OpenMonitoringInfo `json:"openMonitoring,omitempty"`
 	// This controls storage mode for supported storage tiers.
+
 	StorageMode *string `json:"storageMode,omitempty"`
 	// Create tags when creating the cluster.
+
 	Tags map[string]*string `json:"tags,omitempty"`
 }
 
@@ -64,7 +81,7 @@ type ClusterStatus struct {
 	// constructed ARN for the resource
 	// +kubebuilder:validation:Optional
 	ACKResourceMetadata *ackv1alpha1.ResourceMetadata `json:"ackResourceMetadata"`
-	// All CRS managed by ACK have a common `Status.Conditions` member that
+	// All CRs managed by ACK have a common `Status.Conditions` member that
 	// contains a collection of `ackv1alpha1.Condition` objects that describe
 	// the various terminal states of the CR and its backend AWS service API
 	// resource

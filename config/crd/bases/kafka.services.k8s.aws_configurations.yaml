@@ -43,23 +43,14 @@ spec:
               Represents an MSK Configuration.
             properties:
               description:
-                description: The description of the configuration.
                 type: string
               kafkaVersions:
-                description: The versions of Apache Kafka with which you can use this
-                  MSK configuration.
                 items:
                   type: string
                 type: array
               name:
-                description: The name of the configuration.
                 type: string
               serverProperties:
-                description: |-
-                  Contents of the server.properties file. When using the API, you must ensure
-                  that the contents of the file are base64 encoded. When using the AWS Management
-                  Console, the SDK, or the AWS CLI, the contents of server.properties can be
-                  in plaintext.
                 format: byte
                 type: string
             required:
@@ -100,7 +91,7 @@ spec:
                 type: object
               conditions:
                 description: |-
-                  All CRS managed by ACK have a common `Status.Conditions` member that
+                  All CRs managed by ACK have a common `Status.Conditions` member that
                   contains a collection of `ackv1alpha1.Condition` objects that describe
                   the various terminal states of the CR and its backend AWS service API
                   resource
