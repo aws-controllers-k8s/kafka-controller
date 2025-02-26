@@ -191,6 +191,16 @@ func (rm *resourceManager) sdkFind(
 		arn := ackv1alpha1.AWSResourceName(*resp.ClusterInfo.ClusterArn)
 		ko.Status.ACKResourceMetadata.ARN = &arn
 	}
+	if resp.ClusterInfo.ClusterName != nil {
+		ko.Spec.Name = resp.ClusterInfo.ClusterName
+	} else {
+		ko.Spec.Name = nil
+	}
+	if resp.ClusterInfo.CurrentVersion != nil {
+		ko.Status.CurrentVersion = resp.ClusterInfo.CurrentVersion
+	} else {
+		ko.Status.CurrentVersion = nil
+	}
 	if resp.ClusterInfo.EncryptionInfo != nil {
 		f9 := &svcapitypes.EncryptionInfo{}
 		if resp.ClusterInfo.EncryptionInfo.EncryptionAtRest != nil {
@@ -319,6 +329,11 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
+	if resp.ClusterInfo.CurrentVersion != nil {
+		ko.Status.CurrentVersion = resp.ClusterInfo.CurrentVersion
+	} else {
+		ko.Status.CurrentVersion = nil
+	}
 	if !clusterActive(&resource{ko}) {
 		// Setting resource synced condition to false will trigger a requeue of
 		// the resource. No need to return a requeue error here.
@@ -675,6 +690,13 @@ func (rm *resourceManager) sdkDelete(
 	if err := rm.syncAssociatedScramSecrets(ctx, &resource{ko: groupCpy}, r); err != nil {
 		return nil, err
 	}
+	if !clusterActive(r) {
+		// doing this to avoid BadRequestException
+		return r, ackrequeue.NeededAfter(
+			fmt.Errorf("waiting for cluster to be active before deletion"),
+			ackrequeue.DefaultRequeueAfterDuration,
+		)
+	}
 
 	input, err := rm.newDeleteRequestPayload(r)
 	if err != nil {
@@ -696,6 +718,9 @@ func (rm *resourceManager) newDeleteRequestPayload(
 
 	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
 		res.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
+	}
+	if r.ko.Status.CurrentVersion != nil {
+		res.CurrentVersion = r.ko.Status.CurrentVersion
 	}
 
 	return res, nil
