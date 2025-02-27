@@ -90,6 +90,9 @@ type ClusterStatus struct {
 	BootstrapBrokerStringVPCConnectivitySASLSCRAM *string `json:"bootstrapBrokerStringVPCConnectivitySASLSCRAM,omitempty"`
 	// +kubebuilder:validation:Optional
 	BootstrapBrokerStringVPCConnectivityTLS *string `json:"bootstrapBrokerStringVPCConnectivityTLS,omitempty"`
+	// The current version of the MSK cluster.
+	// +kubebuilder:validation:Optional
+	CurrentVersion *string `json:"currentVersion,omitempty"`
 	// The state of the cluster. The possible states are ACTIVE, CREATING, DELETING,
 	// FAILED, HEALING, MAINTENANCE, REBOOTING_BROKER, and UPDATING.
 	// +kubebuilder:validation:Optional

@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	svcapitypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
@@ -38,6 +39,7 @@ var (
 		string(svcsdktypes.ClusterStateDeleting),
 		string(svcsdktypes.ClusterStateFailed),
 	}
+	RequeueAfterUpdateDuration = 15 * time.Second
 )
 
 var (
@@ -113,6 +115,18 @@ func clusterDeleting(r *resource) bool {
 	return cs == strings.ToLower(string(svcsdktypes.ClusterStateDeleting))
 }
 
+// requeueAfterAsyncUpdate returns a `ackrequeue.RequeueNeededAfter` struct
+// explaining the cluster cannot be modified until after the asynchronous update
+// has (first, started and then) completed and the cluster reaches an active
+// status.
+func requeueAfterAsyncUpdate() *ackrequeue.RequeueNeededAfter {
+	return ackrequeue.NeededAfter(
+		fmt.Errorf("cluster has started asynchronously updating, cannot be modified until '%s'",
+			"Active"),
+		RequeueAfterUpdateDuration,
+	)
+}
+
 func (rm *resourceManager) customUpdate(
 	ctx context.Context,
 	desired *resource,
@@ -133,12 +147,6 @@ func (rm *resourceManager) customUpdate(
 	// Copy status from latest since it has the current cluster state
 	updatedRes.ko.Status = latest.ko.Status
 
-	if clusterDeleting(latest) {
-		msg := "Cluster is currently being deleted"
-		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &msg, nil)
-		return updatedRes, requeueWaitWhileDeleting
-	}
-
 	if !clusterActive(latest) {
 		msg := "Cluster is in '" + *latest.ko.Status.State + "' state"
 		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &msg, nil)
@@ -149,16 +157,120 @@ func (rm *resourceManager) customUpdate(
 		return updatedRes, requeueWaitUntilCanModify(latest)
 	}
 
-	if delta.DifferentAt("Spec.AssociatedSCRAMSecrets") {
+	switch {
+	case delta.DifferentAt("Spec.ClientAuthentication"):
+		input := &svcsdk.UpdateSecurityInput{}
+		if desired.ko.Status.CurrentVersion != nil {
+			input.CurrentVersion = desired.ko.Status.CurrentVersion
+		}
+		if desired.ko.Status.ACKResourceMetadata.ARN != nil {
+			input.ClusterArn = (*string)(desired.ko.Status.ACKResourceMetadata.ARN)
+		}
+		if desired.ko.Spec.ClientAuthentication != nil {
+			f0 := &svcsdktypes.ClientAuthentication{}
+			if desired.ko.Spec.ClientAuthentication.SASL != nil {
+				f0f0 := &svcsdktypes.Sasl{}
+				if desired.ko.Spec.ClientAuthentication.SASL.IAM != nil &&
+					desired.ko.Spec.ClientAuthentication.SASL.IAM.Enabled != nil {
+					f0f0f0 := &svcsdktypes.Iam{
+						Enabled: desired.ko.Spec.ClientAuthentication.SASL.IAM.Enabled,
+					}
+					f0f0.Iam = f0f0f0
+				}
+				if desired.ko.Spec.ClientAuthentication.SASL.SCRAM != nil &&
+					desired.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled != nil {
+					f0f0f1 := &svcsdktypes.Scram{
+						Enabled: desired.ko.Spec.ClientAuthentication.SASL.SCRAM.Enabled,
+					}
+					f0f0.Scram = f0f0f1
+				}
+				f0.Sasl = f0f0
+			}
+			if desired.ko.Spec.ClientAuthentication.TLS != nil {
+				f0f1 := &svcsdktypes.Tls{}
+				if desired.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList != nil {
+					f0f1.CertificateAuthorityArnList = aws.ToStringSlice(desired.ko.Spec.ClientAuthentication.TLS.CertificateAuthorityARNList)
+				}
+				if desired.ko.Spec.ClientAuthentication.TLS.Enabled != nil {
+					f0f1.Enabled = desired.ko.Spec.ClientAuthentication.TLS.Enabled
+				}
+				f0.Tls = f0f1
+			}
+			if desired.ko.Spec.ClientAuthentication.Unauthenticated != nil &&
+				desired.ko.Spec.ClientAuthentication.Unauthenticated.Enabled != nil {
+				f0.Unauthenticated = &svcsdktypes.Unauthenticated{
+					Enabled: desired.ko.Spec.ClientAuthentication.Unauthenticated.Enabled,
+				}
+			}
+			input.ClientAuthentication = f0
+		}
+
+		_, err = rm.sdkapi.UpdateSecurity(ctx, input)
+		rm.metrics.RecordAPICall("UPDATE", "UpdateSecurity", err)
+		if err != nil {
+			return nil, err
+		}
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, nil, nil)
+		err = requeueAfterAsyncUpdate()
+
+	case delta.DifferentAt("Spec.AssociatedSCRAMSecrets"):
 		err = rm.syncAssociatedScramSecrets(ctx, updatedRes, latest)
 		if err != nil {
 			return nil, err
 		}
+		// Set synced condition to True after successful update
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, nil, nil)
+
+	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize"):
+		_, err := rm.sdkapi.UpdateBrokerStorage(ctx, &svcsdk.UpdateBrokerStorageInput{
+			ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+			CurrentVersion: latest.ko.Status.CurrentVersion,
+			TargetBrokerEBSVolumeInfo: []svcsdktypes.BrokerEBSVolumeInfo{
+				{
+					KafkaBrokerNodeId: aws.String("ALL"),
+					VolumeSizeGB:      aws.Int32(int32(*desired.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize)),
+				},
+			},
+		})
+		rm.metrics.RecordAPICall("UPDATE", "UpdateBrokerStorage", err)
+		if err != nil {
+			return nil, err
+		}
+		message := fmt.Sprintf("kafka is updating broker storage")
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
+		err = requeueAfterAsyncUpdate()
+
+	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.InstanceType"):
+		_, err := rm.sdkapi.UpdateBrokerType(ctx, &svcsdk.UpdateBrokerTypeInput{
+			ClusterArn:         (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+			CurrentVersion:     latest.ko.Status.CurrentVersion,
+			TargetInstanceType: desired.ko.Spec.BrokerNodeGroupInfo.InstanceType,
+		})
+		rm.metrics.RecordAPICall("UPDATE", "UpdateBrokerType", err)
+		if err != nil {
+			return nil, err
+		}
+		message := fmt.Sprintf("kafka is updating broker instanceType")
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
+		err = requeueAfterAsyncUpdate()
+
+	case delta.DifferentAt("Spec.NumberOfBrokerNodes"):
+		_, err := rm.sdkapi.UpdateBrokerCount(ctx, &svcsdk.UpdateBrokerCountInput{
+			ClusterArn:                (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+			CurrentVersion:            latest.ko.Status.CurrentVersion,
+			TargetNumberOfBrokerNodes: aws.Int32(int32(*desired.ko.Spec.NumberOfBrokerNodes)),
+		})
+		rm.metrics.RecordAPICall("UPDATE", "UpdateBrokerCount", err)
+		if err != nil {
+			return nil, err
+		}
+		message := fmt.Sprintf("kafka is updating broker instanceType")
+		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
+		err = requeueAfterAsyncUpdate()
+
 	}
 
-	// Set synced condition to True after successful update
-	ackcondition.SetSynced(updatedRes, corev1.ConditionTrue, nil, nil)
-	return updatedRes, nil
+	return updatedRes, err
 }
 
 // syncAssociatedScramSecrets examines the Secret ARNs in the supplied Cluster
