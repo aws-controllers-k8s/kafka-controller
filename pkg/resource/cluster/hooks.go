@@ -23,6 +23,7 @@ import (
 	svcapitypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackcondition "github.com/aws-controllers-k8s/runtime/pkg/condition"
+	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	ackutil "github.com/aws-controllers-k8s/runtime/pkg/util"
@@ -354,6 +355,16 @@ func (rm *resourceManager) getAssociatedScramSecrets(
 	return res, err
 }
 
+type unprocessedSecret struct {
+	errorCode    string
+	errorMessage string
+	secretArn    string
+}
+
+func (us unprocessedSecret) String() string {
+	return fmt.Sprintf("ErrorCode: %s, ErrorMessage %s, SecretArn: %s", us.errorCode, us.errorMessage, us.secretArn)
+}
+
 // batchAssociateScramSecret associates the supplied scram secrets to the supplied Cluster
 // resource
 func (rm *resourceManager) batchAssociateScramSecret(
@@ -367,14 +378,27 @@ func (rm *resourceManager) batchAssociateScramSecret(
 
 	input := &svcsdk.BatchAssociateScramSecretInput{}
 	input.ClusterArn = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
-	// Convert []*string to []string
-	unrefSecrets := make([]string, len(secretARNs))
-	for i, s := range secretARNs {
-		unrefSecrets[i] = *s
-	}
-	input.SecretArnList = unrefSecrets
-	_, err = rm.sdkapi.BatchAssociateScramSecret(ctx, input)
+	input.SecretArnList = aws.ToStringSlice(secretARNs)
+	resp, err := rm.sdkapi.BatchAssociateScramSecret(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "BatchAssociateScramSecret", err)
+	if err != nil {
+		return err
+	}
+
+	if len(resp.UnprocessedScramSecrets) > 0 {
+		unprocessedSecrets := []unprocessedSecret{}
+		for _, uss := range resp.UnprocessedScramSecrets {
+			us := unprocessedSecret{
+				errorCode:    aws.ToString(uss.ErrorCode),
+				errorMessage: aws.ToString(uss.ErrorMessage),
+				secretArn:    aws.ToString(uss.SecretArn),
+			}
+			unprocessedSecrets = append(unprocessedSecrets, us)
+		}
+
+		return ackerr.NewTerminalError(fmt.Errorf("Cant attach secret arns: %v", unprocessedSecrets))
+	}
+
 	return err
 }
 

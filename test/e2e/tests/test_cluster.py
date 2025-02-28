@@ -133,17 +133,10 @@ class TestCluster:
         updates = {
             "spec": {
                 "associatedSCRAMSecrets": [secret_1, secret_2],
-                'brokerNodeGroupInfo': {
-                    "storageInfo": {
-                        "ebsStorageInfo": {
-                            "volumeSize": updated_volume_size
-                        }
-                    }
-                }
             },
         }
         k8s.patch_custom_resource(ref, updates)
-
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
             "ACK.ResourceSynced",
@@ -160,7 +153,30 @@ class TestCluster:
         assert len(latest_secrets) == 2
         assert secret_1 in latest_secrets and secret_2 in latest_secrets
 
+        updates = {
+            "spec": {
+                'brokerNodeGroupInfo': {
+                    "storageInfo": {
+                        "ebsStorageInfo": {
+                            "volumeSize": updated_volume_size
+                        }
+                    }
+                }
+            }
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
 
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
         latest_cluster = cluster.get_by_arn(cluster_arn)
         assert latest_cluster is not None
 
