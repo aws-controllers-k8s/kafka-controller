@@ -356,6 +356,9 @@ spec:
                   - type
                   type: object
                 type: array
+              currentVersion:
+                description: The current version of the MSK cluster.
+                type: string
               state:
                 description: |-
                   The state of the cluster. The possible states are ACTIVE, CREATING, DELETING,
