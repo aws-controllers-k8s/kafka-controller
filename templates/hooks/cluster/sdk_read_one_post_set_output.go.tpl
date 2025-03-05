@@ -1,3 +1,8 @@
+	if resp.ClusterInfo.CurrentVersion != nil {
+		ko.Status.CurrentVersion = resp.ClusterInfo.CurrentVersion
+	} else {
+		ko.Status.CurrentVersion = nil
+	}
 	if !clusterActive(&resource{ko}) {
 		// Setting resource synced condition to false will trigger a requeue of
 		// the resource. No need to return a requeue error here.

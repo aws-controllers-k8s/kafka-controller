@@ -32,8 +32,9 @@ from e2e import cluster
 # often 25+ minutes even for small clusters. We wait this amount of time before
 # even trying to fetch a cluster's state.
 CREATE_WAIT_AFTER_SECONDS = 180
-DELETE_WAIT_SECONDS = 30
+DELETE_WAIT_SECONDS = 300
 MODIFY_WAIT_AFTER_SECONDS = 10
+LONG_UPDATE_WAIT = 600
 
 # Time to wait after the cluster has changed status, for the CR to update
 CHECK_STATUS_WAIT_SECONDS = 60
@@ -129,14 +130,63 @@ class TestCluster:
 
         # associate one more secret to the cluster
         updates = {
-            "spec": {"associatedSCRAMSecrets": [secret_1, secret_2]},
+            "spec": {
+                "associatedSCRAMSecrets": [secret_1, secret_2],
+            },
         }
         k8s.patch_custom_resource(ref, updates)
-        time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
 
         latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 2
         assert secret_1 in latest_secrets and secret_2 in latest_secrets
+
+        updated_volume_size = cr['spec']['brokerNodeGroupInfo']['storageInfo']['ebsStorageInfo']['volumeSize'] + 10
+        updates = {
+            "spec": {
+                'brokerNodeGroupInfo': {
+                    "storageInfo": {
+                        "ebsStorageInfo": {
+                            "volumeSize": updated_volume_size
+                        }
+                    }
+                }
+            }
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        latest_cluster = cluster.get_by_arn(cluster_arn)
+        assert latest_cluster is not None
+        
+        cr = k8s.get_resource(ref)
+
+        latest_volume = latest_cluster['BrokerNodeGroupInfo']["StorageInfo"]["EbsStorageInfo"]["VolumeSize"]
+        desired_volume = cr['spec']['brokerNodeGroupInfo']['storageInfo']['ebsStorageInfo']['volumeSize']
+
+        assert latest_volume == desired_volume
 
         # remove all associated secrets
         updates = {

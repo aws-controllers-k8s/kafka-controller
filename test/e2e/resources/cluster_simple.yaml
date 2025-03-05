@@ -16,6 +16,9 @@ spec:
     clientSubnets:
       - $SUBNET_ID_1
       - $SUBNET_ID_2
+    storageInfo:
+      ebsStorageInfo:
+        volumeSize: 10
   kafkaVersion: "3.3.1"
   # NOTE(jaypipes): Number of broker nodes need to be a multiple of the number
   # of subnets

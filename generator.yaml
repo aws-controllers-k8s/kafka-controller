@@ -23,6 +23,9 @@ resources:
         CreateCluster:
           input_fields:
             ClusterName: Name
+        DescribeCluster:
+          input_fields:
+            ClusterName: Name
     hooks:
       sdk_read_one_post_set_output:
         template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
@@ -94,6 +97,11 @@ resources:
         is_read_only: true
       BootstrapBrokerStringVpcConnectivityTls:
         type: string
+        is_read_only: true
+      CurrentVersion:
+        from:
+          operation: DescribeCluster
+          path: ClusterInfo.CurrentVersion
         is_read_only: true
     tags:
       # TODO(jaypipes): Ignore tags for now... we will add support later
