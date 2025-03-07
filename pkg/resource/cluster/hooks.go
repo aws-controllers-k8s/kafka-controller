@@ -195,7 +195,7 @@ func (rm *resourceManager) updateNumberOfBrokerNodes(
 	_, err = rm.sdkapi.UpdateBrokerCount(ctx, &svcsdk.UpdateBrokerCountInput{
 		ClusterArn:                (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
 		CurrentVersion:            latest.ko.Status.CurrentVersion,
-		TargetNumberOfBrokerNodes: aws.Int32(int32(*desired.ko.Spec.NumberOfBrokerNodes)),
+		TargetNumberOfBrokerNodes: int32OrNil(desired.ko.Spec.NumberOfBrokerNodes),
 	})
 	rm.metrics.RecordAPICall("UPDATE", "UpdateBrokerCount", err)
 	if err != nil {
@@ -207,8 +207,7 @@ func (rm *resourceManager) updateNumberOfBrokerNodes(
 	return desired, requeueAfterAsyncUpdate()
 }
 
-
-// updateBrokerType updates the broker type of the 
+// updateBrokerType updates the broker type of the
 // kafka cluster
 func (rm *resourceManager) updateBrokerType(
 	ctx context.Context,
@@ -250,7 +249,7 @@ func (rm *resourceManager) updateBrokerStorage(
 		TargetBrokerEBSVolumeInfo: []svcsdktypes.BrokerEBSVolumeInfo{
 			{
 				KafkaBrokerNodeId: aws.String("ALL"),
-				VolumeSizeGB:      aws.Int32(int32(*desired.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize)),
+				VolumeSizeGB:      int32OrNil(desired.ko.Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize),
 			},
 		},
 	})
@@ -327,7 +326,7 @@ func (rm *resourceManager) updateClientAuthentication(
 	}
 	message := "kafka is updating the client authentication"
 	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
-	
+
 	return desired, err
 }
 
@@ -415,7 +414,7 @@ func (rm *resourceManager) getAssociatedScramSecrets(
 	return res, err
 }
 
-// unprocessedSecrets is an error returned by the 
+// unprocessedSecrets is an error returned by the
 // BatchAssociateScramSecret or Disassociate. It represents the
 // secretArns that could not be associated and the reason
 type unprocessedSecrets struct {
@@ -429,7 +428,7 @@ type unprocessedSecrets struct {
 // errorMessages, and failedSecretArns
 func (us unprocessedSecrets) Error() string {
 	// I don't see a case where the lengths will differ
-	// getting the minimum just in case, so we can avoid 
+	// getting the minimum just in case, so we can avoid
 	// an index out of bounds
 	lenErrs := min(len(us.errorCodes), len(us.errorMessages), len(us.secretArns))
 	errorMessage := ""
@@ -605,4 +604,12 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	if a.ko.Spec.StorageMode == nil {
 		a.ko.Spec.StorageMode = aws.String(string(svcsdktypes.StorageModeLocal))
 	}
+}
+
+func int32OrNil(num *int64) *int32 {
+	if num == nil {
+		return nil
+	}
+
+	return aws.Int32(int32(*num))
 }

@@ -1,3 +1,6 @@
+	if resp.ClusterInfo.CurrentBrokerSoftwareInfo != nil && resp.ClusterInfo.CurrentBrokerSoftwareInfo.KafkaVersion != nil {
+		ko.Spec.KafkaVersion = resp.ClusterInfo.CurrentBrokerSoftwareInfo.KafkaVersion
+	}
 	if resp.ClusterInfo.CurrentVersion != nil {
 		ko.Status.CurrentVersion = resp.ClusterInfo.CurrentVersion
 	} else {
