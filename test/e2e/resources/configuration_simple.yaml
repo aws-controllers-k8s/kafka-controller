@@ -2,6 +2,8 @@ apiVersion: kafka.services.k8s.aws/v1alpha1
 kind: Configuration
 metadata:
   name: $CONFIG_NAME
+  annotations:
+    services.k8s.aws/delition-policy: $DELETION_POLICY
 spec:
   name: $CONFIG_NAME
   kafkaVersions:
