@@ -3,7 +3,7 @@ kind: Configuration
 metadata:
   name: $CONFIG_NAME
   annotations:
-    services.k8s.aws/delition-policy: $DELETION_POLICY
+    services.k8s.aws/deletion-policy: $DELETION_POLICY
 spec:
   name: $CONFIG_NAME
   kafkaVersions:
