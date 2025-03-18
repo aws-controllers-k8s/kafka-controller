@@ -35,9 +35,70 @@ def simple_config():
     resource_name = random_suffix_name("my-config", 24)
     replacements = REPLACEMENT_VALUES.copy()
     replacements["CONFIG_NAME"] = resource_name
+    replacements["DELETION_POLICY"] = "delete"
 
     resource_data = load_resource(
         "configuration_simple", additional_replacements=replacements
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        CONFIG_RESOURCE_PLURAL,
+        resource_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+
+    yield (ref, cr)
+
+    try:
+        _, deleted = k8s.delete_custom_resource(ref, DELETE_WAIT_SECONDS)
+        assert deleted
+    except:
+        pass
+
+@pytest.fixture(scope="module")
+def adoption_config():
+    resource_name = random_suffix_name("my-config", 24)
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["CONFIG_NAME"] = resource_name
+    replacements["DELETION_POLICY"] = "retain"
+
+    resource_data = load_resource(
+        "configuration_simple", additional_replacements=replacements
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        CONFIG_RESOURCE_PLURAL,
+        resource_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+    time.sleep(CREATE_WAIT_SECONDS)
+
+    assert "status" in cr
+    assert "ackResourceMetadata" in cr["status"]
+    assert "arn" in cr["status"]["ackResourceMetadata"]
+    arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+    #Delete with retain policy allows us to adopt same resource
+    _, deleted = k8s.delete_custom_resource(ref, 3, 10)
+    assert deleted  
+
+    replacements["ADOPTION_FIELDS"] = f'{{\\\"arn\\\": \\\"{arn}\\\"}}'
+    resource_data = load_resource(
+        "configuration_adopt", additional_replacements=replacements
     )
 
     ref = k8s.CustomResourceReference(
@@ -101,3 +162,15 @@ class TestConfiguration:
 
         latest = get_by_arn(config_arn)
         assert latest is None
+    
+    def test_adopt(seld, adoption_config):
+        ref, cr = adoption_config
+        time.sleep(CREATE_WAIT_SECONDS)
+
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+
+        assert "spec" in cr
+        assert "serverProperties" in cr["spec"]
+

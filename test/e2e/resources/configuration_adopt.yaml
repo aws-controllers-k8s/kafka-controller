@@ -1,0 +1,9 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Configuration
+metadata:
+  name: $CONFIG_NAME
+  annotations:
+    services.k8s.aws/adoption-policy: adopt 
+    services.k8s.aws/adoption-fields: "$ADOPTION_FIELDS"
+
+
