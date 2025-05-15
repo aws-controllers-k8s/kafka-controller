@@ -74,6 +74,7 @@ rules:
   resources:
   - clusters
   - configurations
+  - serverlessclusters
   verbs:
   - create
   - delete
@@ -87,6 +88,7 @@ rules:
   resources:
   - clusters/status
   - configurations/status
+  - serverlessclusters/status
   verbs:
   - get
   - patch
