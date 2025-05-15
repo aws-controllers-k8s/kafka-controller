@@ -1,2 +1,3 @@
 CLUSTER_RESOURCE_PLURAL = "clusters"
 CONFIG_RESOURCE_PLURAL = "configurations"
+SERVERLESSCLUSTER_RESOURCE_PLURAL = 'serverlessclusters'

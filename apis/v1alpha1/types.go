@@ -169,7 +169,9 @@ type ClusterOperationStepInfo struct {
 
 // Returns information about a cluster operation.
 type ClusterOperationV2 struct {
-	ClusterARN     *string      `json:"clusterARN,omitempty"`
+	ClusterARN *string `json:"clusterARN,omitempty"`
+	// The type of cluster.
+	ClusterType    *string      `json:"clusterType,omitempty"`
 	EndTime        *metav1.Time `json:"endTime,omitempty"`
 	OperationARN   *string      `json:"operationARN,omitempty"`
 	OperationState *string      `json:"operationState,omitempty"`
@@ -179,7 +181,9 @@ type ClusterOperationV2 struct {
 
 // Returns information about a cluster operation.
 type ClusterOperationV2Summary struct {
-	ClusterARN     *string      `json:"clusterARN,omitempty"`
+	ClusterARN *string `json:"clusterARN,omitempty"`
+	// The type of cluster.
+	ClusterType    *string      `json:"clusterType,omitempty"`
 	EndTime        *metav1.Time `json:"endTime,omitempty"`
 	OperationARN   *string      `json:"operationARN,omitempty"`
 	OperationState *string      `json:"operationState,omitempty"`
@@ -189,11 +193,17 @@ type ClusterOperationV2Summary struct {
 
 // Returns information about a cluster.
 type Cluster_SDK struct {
-	ActiveOperationARN *string      `json:"activeOperationARN,omitempty"`
-	ClusterARN         *string      `json:"clusterARN,omitempty"`
-	ClusterName        *string      `json:"clusterName,omitempty"`
-	CreationTime       *metav1.Time `json:"creationTime,omitempty"`
-	CurrentVersion     *string      `json:"currentVersion,omitempty"`
+	ActiveOperationARN *string `json:"activeOperationARN,omitempty"`
+	ClusterARN         *string `json:"clusterARN,omitempty"`
+	ClusterName        *string `json:"clusterName,omitempty"`
+	// The type of cluster.
+	ClusterType    *string      `json:"clusterType,omitempty"`
+	CreationTime   *metav1.Time `json:"creationTime,omitempty"`
+	CurrentVersion *string      `json:"currentVersion,omitempty"`
+	// Provisioned cluster.
+	Provisioned *Provisioned `json:"provisioned,omitempty"`
+	// Serverless cluster.
+	Serverless *Serverless `json:"serverless,omitempty"`
 	// The state of the Apache Kafka cluster.
 	State     *string            `json:"state,omitempty"`
 	StateInfo *StateInfo         `json:"stateInfo,omitempty"`
@@ -530,6 +540,26 @@ type SASL struct {
 // Details for SASL/SCRAM client authentication.
 type SCRAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Serverless cluster.
+type Serverless struct {
+	// Includes all client authentication information.
+	ClientAuthentication *ServerlessClientAuthentication `json:"clientAuthentication,omitempty"`
+	VPCConfigs           []*VPCConfig                    `json:"vpcConfigs,omitempty"`
+}
+
+// Includes all client authentication information.
+type ServerlessClientAuthentication struct {
+	// Details for client authentication using SASL.
+	SASL *ServerlessSASL `json:"sasl,omitempty"`
+}
+
+// Serverless cluster request.
+type ServerlessRequest struct {
+	// Includes all client authentication information.
+	ClientAuthentication *ServerlessClientAuthentication `json:"clientAuthentication,omitempty"`
+	VPCConfigs           []*VPCConfig                    `json:"vpcConfigs,omitempty"`
 }
 
 // Details for client authentication using SASL.
