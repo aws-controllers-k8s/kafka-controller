@@ -1,14 +1,22 @@
 ignore:
   resource_names:
     #- Cluster
-    - ClusterV2
+    # - ClusterV2
     - VpcConnection
     - Replicator
     #- Configuration
   field_paths:
    - ConnectivityInfo.VpcConnectivity
    - DescribeClusterOutput.ClusterInfo.BrokerNodeGroupInfo.ZoneIds
-
+operations:
+  CreateClusterV2:
+    operation_type:
+    - Create
+    resource_name: ServerlessCluster
+  DescribeClusterV2:
+    operation_type:
+    - Get
+    resource_name: ServerlessCluster
 resources:
   Configuration:
     fields:
@@ -34,8 +42,6 @@ resources:
         template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/cluster/sdk_create_post_set_output.go.tpl
-      sdk_update_pre_build_request:
-        template_path: hooks/cluster/sdk_update_pre_build_request.go.tpl
       sdk_delete_pre_build_request:
         template_path: hooks/cluster/sdk_delete_pre_build_request.go.tpl
       delta_pre_compare:
@@ -109,3 +115,50 @@ resources:
     tags:
       # TODO(jaypipes): Ignore tags for now... we will add support later
       ignore: true
+  ServerlessCluster:
+    is_arn_primary_key: true
+    renames:
+      operations:
+        CreateClusterV2:
+          input_fields:
+            ClusterName: Name
+          output_fields:
+            ClusteName: Name
+            ClusterType: Type
+        DescribeClusterV2:
+          input_fields:
+          output_fields:
+            ClusterName: Name
+            ClusterType: Type
+    fields:
+      AssociatedScramSecrets:
+        type: "[]*string"
+        references:
+          resource: Secret
+          service_name: secretsmanager
+          path: Status.ACKResourceMetadata.ARN
+      ClusterARN:
+        is_arn: true
+      CurrentVersion:
+        from:
+          operation: DescribeCluster
+          path: ClusterInfo.CurrentVersion
+        is_read_only: true
+      Type:
+        go_tag: json:"type,omitempty"
+    hooks:
+      sdk_read_one_post_set_output:
+        template_path: hooks/serverless_cluster/sdk_read_one_post_set_output.go.tpl
+      sdk_create_post_set_output:
+        template_path: hooks/serverless_cluster/sdk_create_post_set_output.go.tpl
+      delta_pre_compare:
+        code: customPreCompare(delta, a, b)
+    update_operation:
+      custom_method_name: customUpdate
+    delete_operation:
+      custom_method_name: customDelete
+    synced:
+      when:
+        - path: Status.State
+          in:
+            - ACTIVE

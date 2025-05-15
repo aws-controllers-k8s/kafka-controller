@@ -11,6 +11,7 @@ rules:
   resources:
   - clusters
   - configurations
+  - serverlessclusters
   verbs:
   - get
   - list
