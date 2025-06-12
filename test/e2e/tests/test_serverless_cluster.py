@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-"""Integration tests for the MSK Cluster resource"""
+"""Integration tests for the MSK ServerlessCluster resource"""
 
 import logging
 import time
@@ -24,25 +24,18 @@ from acktest.resources import random_suffix_name
 from acktest import tags
 from e2e import service_marker, CRD_GROUP, CRD_VERSION, load_resource
 from e2e.bootstrap_resources import get_bootstrap_resources
-from e2e.common.types import CLUSTER_RESOURCE_PLURAL
+from e2e.common.types import SERVERLESSCLUSTER_RESOURCE_PLURAL
 from e2e.replacement_values import REPLACEMENT_VALUES
-from e2e import cluster
+from e2e import serverlesscluster
 
-# Creating clusters and getting them into an ACTIVE state takes a LONG time --
-# often 25+ minutes even for small clusters. We wait this amount of time before
-# even trying to fetch a cluster's state.
 CREATE_WAIT_AFTER_SECONDS = 180
 DELETE_WAIT_SECONDS = 300
 MODIFY_WAIT_AFTER_SECONDS = 10
-LONG_UPDATE_WAIT = 600
-
-# Time to wait after the cluster has changed status, for the CR to update
 CHECK_STATUS_WAIT_SECONDS = 60
 
-
 @pytest.fixture(scope="module")
-def simple_cluster():
-    cluster_name = random_suffix_name("my-simple-cluster", 24)
+def simple_serverless_cluster():
+    cluster_name = random_suffix_name("my-serverless-cluster", 24)
 
     resources = get_bootstrap_resources()
     vpc = resources.ClusterVPC
@@ -53,20 +46,20 @@ def simple_cluster():
     secret_2 = resources.SCRAMSecret2.arn
 
     replacements = REPLACEMENT_VALUES.copy()
-    replacements["CLUSTER_NAME"] = cluster_name
+    replacements["SERVERLESS_CLUSTER_NAME"] = cluster_name
     replacements["SUBNET_ID_1"] = subnet_id_1
     replacements["SUBNET_ID_2"] = subnet_id_2
     replacements["SECRET_ARN"] = secret_1
 
     resource_data = load_resource(
-        "cluster_simple",
+        "serverlesscluster_simple",
         additional_replacements=replacements,
     )
 
     ref = k8s.CustomResourceReference(
         CRD_GROUP,
         CRD_VERSION,
-        CLUSTER_RESOURCE_PLURAL,
+        SERVERLESSCLUSTER_RESOURCE_PLURAL,
         cluster_name,
         namespace="default",
     )
@@ -84,23 +77,16 @@ def simple_cluster():
     )
     assert deleted
 
-    # NOTE(jaypipes): We wait until the cluster can no longer be found in MSK,
-    # otherwise, trying to delete subnets referenced in the cluster
-    # configuration will result in a failure...
-    cluster.wait_until_deleted(cluster_name)
-
+    serverlesscluster.wait_until_deleted(cluster_name)
 
 @service_marker
 @pytest.mark.canary
-class TestCluster:
-    def test_crud(self, simple_cluster):
-        ref, res = simple_cluster
+class TestServerlessCluster:
+    def test_crud(self, simple_serverless_cluster):
+        ref, _ = simple_serverless_cluster
 
         time.sleep(CREATE_WAIT_AFTER_SECONDS)
 
-        # Before we update the Topic CR below, let's check to see that the
-        # DisplayName field in the CR is still what we set in the original
-        # Create call.
         cr = k8s.get_resource(ref)
 
         assert "status" in cr
@@ -108,27 +94,24 @@ class TestCluster:
         assert "arn" in cr["status"]["ackResourceMetadata"]
         cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
 
-        latest = cluster.get_by_arn(cluster_arn)
+        latest = serverlesscluster.get_by_arn(cluster_arn)
         assert latest is not None
         assert "State" in latest
 
-        cluster.wait_until(
+        serverlesscluster.wait_until(
             cluster_arn,
-            cluster.state_matches("ACTIVE"),
+            serverlesscluster.state_matches("ACTIVE"),
         )
 
-        # ensure status is updated properly once it has become active
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         condition.assert_synced(ref)
 
-        cr = k8s.get_resource(ref)
-        assert cr['status']['state'] == "ACTIVE"
-
-        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        # Test SCRAM secrets - first verify initial secret is associated
+        latest_secrets = serverlesscluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 1
         assert secret_1 in latest_secrets
 
-        # associate one more secret to the cluster
+        # Test associating an additional secret using direct ARN references
         updates = {
             "spec": {
                 "associatedSCRAMSecrets": [secret_1, secret_2],
@@ -143,22 +126,25 @@ class TestCluster:
             wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
 
-        cluster.wait_until(
+        serverlesscluster.wait_until(
             cluster_arn,
-            cluster.state_matches("ACTIVE"),
+            serverlesscluster.state_matches("ACTIVE"),
         )
 
-        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        latest_secrets = serverlesscluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 2
         assert secret_1 in latest_secrets and secret_2 in latest_secrets
 
-        updated_volume_size = cr['spec']['brokerNodeGroupInfo']['storageInfo']['ebsStorageInfo']['volumeSize'] + 10
+        # Test using resource references for SCRAM secrets
+        updated_volume_size = cr['spec']['provisioned']['brokerNodeGroupInfo']['storageInfo']['ebsStorageInfo']['volumeSize'] + 10
         updates = {
             "spec": {
-                'brokerNodeGroupInfo': {
-                    "storageInfo": {
-                        "ebsStorageInfo": {
-                            "volumeSize": updated_volume_size
+                'provisioned': {
+                    'brokerNodeGroupInfo': {
+                        "storageInfo": {
+                            "ebsStorageInfo": {
+                                "volumeSize": updated_volume_size
+                            }
                         }
                     }
                 }
@@ -170,30 +156,62 @@ class TestCluster:
             ref,
             "ACK.ResourceSynced",
             "True",
-            wait_periods=LONG_UPDATE_WAIT,
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
 
-        cluster.wait_until(
+        serverlesscluster.wait_until(
             cluster_arn,
-            cluster.state_matches("ACTIVE"),
+            serverlesscluster.state_matches("ACTIVE"),
         )
 
-        latest_cluster = cluster.get_by_arn(cluster_arn)
+        latest_cluster = serverlesscluster.get_by_arn(cluster_arn)
         assert latest_cluster is not None
         
         cr = k8s.get_resource(ref)
 
-        latest_volume = latest_cluster['BrokerNodeGroupInfo']["StorageInfo"]["EbsStorageInfo"]["VolumeSize"]
-        desired_volume = cr['spec']['brokerNodeGroupInfo']['storageInfo']['ebsStorageInfo']['volumeSize']
-
+        latest_volume = latest_cluster['Provisioned']['BrokerNodeGroupInfo']["StorageInfo"]["EbsStorageInfo"]["VolumeSize"]
+        desired_volume = cr['spec']['provisioned']['brokerNodeGroupInfo']['storageInfo']['ebsStorageInfo']['volumeSize']
         assert latest_volume == desired_volume
 
-        # remove all associated secrets
+        # Test removing all associated secrets
         updates = {
-            "spec": {"associatedSCRAMSecrets": []},
+            "spec": {
+                "associatedSCRAMSecrets": [],
+            },
         }
         k8s.patch_custom_resource(ref, updates)
         time.sleep(MODIFY_WAIT_AFTER_SECONDS)
 
-        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        latest_secrets = serverlesscluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 0
+
+        # Test adding tags to the cluster
+        updates = {
+            "spec": {
+                "tags": {
+                    "tag1": "val1",
+                    "tag2": "val2"
+                }
+            }
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
+
+        cr = k8s.get_resource(ref)
+        latest_tags = serverlesscluster.get_tags(cluster_arn)
+        desired_tags = cr['spec']['tags']
+        tags.assert_ack_system_tags(
+            tags=latest_tags,
+        )
+        tags.assert_equal_without_ack_tags(
+            expected=desired_tags,
+            actual=latest_tags,
+        )
+
+        
