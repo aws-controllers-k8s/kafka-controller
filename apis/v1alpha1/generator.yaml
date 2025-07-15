@@ -42,8 +42,6 @@ resources:
         template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/cluster/sdk_create_post_set_output.go.tpl
-      sdk_update_pre_build_request:
-        template_path: hooks/cluster/sdk_update_pre_build_request.go.tpl
       sdk_delete_pre_build_request:
         template_path: hooks/cluster/sdk_delete_pre_build_request.go.tpl
       delta_pre_compare:
@@ -153,10 +151,6 @@ resources:
         template_path: hooks/serverless_cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/serverless_cluster/sdk_create_post_set_output.go.tpl
-      sdk_update_pre_build_request:
-        template_path: hooks/serverless_cluster/sdk_update_pre_build_request.go.tpl
-      sdk_delete_pre_build_request:
-        template_path: hooks/serverless_cluster/sdk_delete_pre_build_request.go.tpl
       delta_pre_compare:
         code: customPreCompare(delta, a, b)
     update_operation:
