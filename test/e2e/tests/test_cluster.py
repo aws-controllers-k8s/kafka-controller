@@ -197,3 +197,32 @@ class TestCluster:
 
         latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
         assert len(latest_secrets) == 0
+
+        # Test adding tags to the cluster
+        updates = {
+            "spec": {
+                "tags": {
+                    "tag1": "val1",
+                    "tag2": "val2"
+                }
+            }
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
+
+        cr = k8s.get_resource(ref)
+        latest_tags = cluster.get_tags(cluster_arn)
+        desired_tags = cr['spec']['tags']
+        tags.assert_ack_system_tags(
+            tags=latest_tags,
+        )
+        tags.assert_equal_without_ack_tags(
+            expected=desired_tags,
+            actual=latest_tags,
+        )

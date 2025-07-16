@@ -66,9 +66,6 @@ resources:
           resource: Secret
           service_name: secretsmanager
           path: Status.ACKResourceMetadata.ARN
-      Tags:
-        compare:
-          is_ignored: true
       BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
         go_tag: json:"type,omitempty"
       ZookeeperConnectString:
@@ -112,9 +109,6 @@ resources:
           operation: DescribeCluster
           path: ClusterInfo.CurrentVersion
         is_read_only: true
-    tags:
-      # TODO(jaypipes): Ignore tags for now... we will add support later
-      ignore: true
   ServerlessCluster:
     is_arn_primary_key: true
     renames:

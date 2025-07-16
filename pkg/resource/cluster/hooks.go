@@ -21,6 +21,7 @@ import (
 	"time"
 
 	svcapitypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
+	"github.com/aws-controllers-k8s/kafka-controller/pkg/sync"
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackcondition "github.com/aws-controllers-k8s/runtime/pkg/condition"
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
@@ -159,6 +160,17 @@ func (rm *resourceManager) customUpdate(
 	}
 
 	switch {
+	case delta.DifferentAt("Spec.Tags"):
+		if err = sync.Tags(
+			ctx,
+			desired.ko.Spec.Tags, latest.ko.Spec.Tags,
+			(*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+			convertToOrderedACKTags, rm.sdkapi, rm.metrics,
+		); err != nil {
+			return updatedRes, nil
+		}
+		return updatedRes, requeueAfterAsyncUpdate()
+
 	case delta.DifferentAt("Spec.ClientAuthentication"):
 		return rm.updateClientAuthentication(ctx, updatedRes, latest)
 	case delta.DifferentAt("Spec.AssociatedSCRAMSecrets"):
@@ -201,7 +213,7 @@ func (rm *resourceManager) updateNumberOfBrokerNodes(
 	if err != nil {
 		return latest, err
 	}
-	message := fmt.Sprintf("kafka is updating broker number of broker nodes")
+	message := "kafka is updating broker number of broker nodes"
 	ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
 
 	return desired, requeueAfterAsyncUpdate()
@@ -226,7 +238,7 @@ func (rm *resourceManager) updateBrokerType(
 	if err != nil {
 		return nil, err
 	}
-	message := fmt.Sprintf("kafka is updating broker instanceType")
+	message := "kafka is updating broker instanceType"
 	ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
 
 	return desired, requeueAfterAsyncUpdate()
@@ -418,7 +430,6 @@ func (rm *resourceManager) getAssociatedScramSecrets(
 // BatchAssociateScramSecret or Disassociate. It represents the
 // secretArns that could not be associated and the reason
 type unprocessedSecrets struct {
-	error
 	errorCodes    []string
 	errorMessages []string
 	secretArns    []string
