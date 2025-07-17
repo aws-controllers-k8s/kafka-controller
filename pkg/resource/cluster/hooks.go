@@ -473,8 +473,8 @@ func (rm *resourceManager) batchAssociateScramSecret(
 		unprocessedSecrets := unprocessedSecrets{}
 		for _, uss := range resp.UnprocessedScramSecrets {
 			unprocessedSecrets.errorCodes = append(unprocessedSecrets.errorCodes, aws.ToString(uss.ErrorCode))
-			unprocessedSecrets.errorMessages = append(unprocessedSecrets.errorCodes, aws.ToString(uss.ErrorMessage))
-			unprocessedSecrets.secretArns = append(unprocessedSecrets.errorCodes, aws.ToString(uss.SecretArn))
+			unprocessedSecrets.errorMessages = append(unprocessedSecrets.errorMessages, aws.ToString(uss.ErrorMessage))
+			unprocessedSecrets.secretArns = append(unprocessedSecrets.secretArns, aws.ToString(uss.SecretArn))
 		}
 
 		return ackerr.NewTerminalError(unprocessedSecrets)
