@@ -20,5 +20,5 @@ spec:
       storageInfo:
         ebsStorageInfo:
           volumeSize: 10
-    kafkaVersion: "3.3.1"
+    kafkaVersion: "3.9.x"
     numberOfBrokerNodes: 2
