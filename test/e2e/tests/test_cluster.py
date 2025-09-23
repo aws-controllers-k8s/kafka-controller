@@ -119,7 +119,7 @@ class TestCluster:
 
         # ensure status is updated properly once it has become active
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
-        condition.assert_synced(ref)
+        condition.assert_ready(ref)
 
         cr = k8s.get_resource(ref)
         assert cr['status']['state'] == "ACTIVE"
@@ -138,7 +138,7 @@ class TestCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
-            "ACK.ResourceSynced",
+            "Ready",
             "True",
             wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
@@ -168,7 +168,7 @@ class TestCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
-            "ACK.ResourceSynced",
+            "Ready",
             "True",
             wait_periods=LONG_UPDATE_WAIT,
         )
@@ -211,7 +211,7 @@ class TestCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
-            "ACK.ResourceSynced",
+            "Ready",
             "True",
             wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
