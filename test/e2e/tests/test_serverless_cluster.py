@@ -104,7 +104,7 @@ class TestServerlessCluster:
         )
 
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
-        condition.assert_synced(ref)
+        condition.assert_ready(ref)
 
         # Test SCRAM secrets - first verify initial secret is associated
         latest_secrets = serverlesscluster.get_associated_scram_secrets(cluster_arn)
@@ -121,7 +121,7 @@ class TestServerlessCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
-            "ACK.ResourceSynced",
+            "Ready",
             "True",
             wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
@@ -154,7 +154,7 @@ class TestServerlessCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
-            "ACK.ResourceSynced",
+            "Ready",
             "True",
             wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
@@ -198,7 +198,7 @@ class TestServerlessCluster:
         time.sleep(CHECK_STATUS_WAIT_SECONDS)
         assert k8s.wait_on_condition(
             ref,
-            "ACK.ResourceSynced",
+            "Ready",
             "True",
             wait_periods=MODIFY_WAIT_AFTER_SECONDS,
         )
