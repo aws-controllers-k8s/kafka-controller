@@ -41,7 +41,6 @@ func newResourceDelta(
 		delta.Add("", a, b)
 		return delta
 	}
-	customPreCompare(delta, a, b)
 
 	if !equality.Semantic.Equalities.DeepEqual(a.ko.Spec.AssociatedSCRAMSecretRefs, b.ko.Spec.AssociatedSCRAMSecretRefs) {
 		delta.Add("Spec.AssociatedSCRAMSecretRefs", a.ko.Spec.AssociatedSCRAMSecretRefs, b.ko.Spec.AssociatedSCRAMSecretRefs)
