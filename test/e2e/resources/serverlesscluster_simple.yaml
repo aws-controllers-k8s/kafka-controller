@@ -4,21 +4,12 @@ metadata:
   name: $SERVERLESS_CLUSTER_NAME
 spec:
   name: $SERVERLESS_CLUSTER_NAME
-  associatedSCRAMSecrets:
-    - $SECRET_ARN
-  provisioned:
+  serverless:
+    vpcConfigs:
+    - subnetIDs:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
     clientAuthentication:
       sasl:
-        scram:
+        iam:
           enabled: true
-    brokerNodeGroupInfo:
-      instanceType: "kafka.t3.small"
-      # NOTE(jaypipes): Clusters require at least 2 subnets.
-      clientSubnets:
-        - $SUBNET_ID_1
-        - $SUBNET_ID_2
-      storageInfo:
-        ebsStorageInfo:
-          volumeSize: 10
-    kafkaVersion: "3.9.x"
-    numberOfBrokerNodes: 2
