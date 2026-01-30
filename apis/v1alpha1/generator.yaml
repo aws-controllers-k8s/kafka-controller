@@ -133,6 +133,9 @@ resources:
           path: Status.ACKResourceMetadata.ARN
       ClusterARN:
         is_arn: true
+      KafkaVersion:
+        set:
+          - from: Provisioned.CurrentBrokerSoftwareInfo.KafkaVersion
       CurrentVersion:
         from:
           operation: DescribeCluster
@@ -140,13 +143,53 @@ resources:
         is_read_only: true
       Type:
         go_tag: json:"type,omitempty"
+      Provisioned.BrokerNodeGroupInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.SecurityGroups:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.StorageInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.ClientAuthentication:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.EncryptionInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.EnhancedMonitoring:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.OpenMonitoring:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.StorageMode:
+        late_initialize:
+          skip_incomplete_check: {}
     hooks:
       sdk_read_one_post_set_output:
         template_path: hooks/serverless_cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/serverless_cluster/sdk_create_post_set_output.go.tpl
-      delta_pre_compare:
-        code: customPreCompare(delta, a, b)
     update_operation:
       custom_method_name: customUpdate
     delete_operation:

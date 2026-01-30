@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{}
+var lateInitializeFieldNames = []string{"Provisioned.BrokerNodeGroupInfo", "Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type", "Provisioned.BrokerNodeGroupInfo.SecurityGroups", "Provisioned.BrokerNodeGroupInfo.StorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize", "Provisioned.ClientAuthentication", "Provisioned.EncryptionInfo", "Provisioned.EnhancedMonitoring", "Provisioned.OpenMonitoring", "Provisioned.StorageMode"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -257,7 +257,107 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 	observed acktypes.AWSResource,
 	latest acktypes.AWSResource,
 ) acktypes.AWSResource {
-	return latest
+	observedKo := rm.concreteResource(observed).ko.DeepCopy()
+	latestKo := rm.concreteResource(latest).ko.DeepCopy()
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo == nil {
+			latestKo.Spec.Provisioned.BrokerNodeGroupInfo = observedKo.Spec.Provisioned.BrokerNodeGroupInfo
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution == nil {
+				latestKo.Spec.Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo == nil {
+				latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess == nil {
+					latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess
+				}
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
+					if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
+						latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups == nil {
+				latestKo.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo == nil {
+				latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo != nil {
+				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo == nil {
+					latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo
+				}
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo != nil {
+				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo != nil {
+					if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize == nil {
+						latestKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.ClientAuthentication != nil && latestKo.Spec.Provisioned.ClientAuthentication == nil {
+			latestKo.Spec.Provisioned.ClientAuthentication = observedKo.Spec.Provisioned.ClientAuthentication
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.EncryptionInfo != nil && latestKo.Spec.Provisioned.EncryptionInfo == nil {
+			latestKo.Spec.Provisioned.EncryptionInfo = observedKo.Spec.Provisioned.EncryptionInfo
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.EnhancedMonitoring != nil && latestKo.Spec.Provisioned.EnhancedMonitoring == nil {
+			latestKo.Spec.Provisioned.EnhancedMonitoring = observedKo.Spec.Provisioned.EnhancedMonitoring
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.OpenMonitoring != nil && latestKo.Spec.Provisioned.OpenMonitoring == nil {
+			latestKo.Spec.Provisioned.OpenMonitoring = observedKo.Spec.Provisioned.OpenMonitoring
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.StorageMode != nil && latestKo.Spec.Provisioned.StorageMode == nil {
+			latestKo.Spec.Provisioned.StorageMode = observedKo.Spec.Provisioned.StorageMode
+		}
+	}
+	return &resource{latestKo}
 }
 
 // IsSynced returns true if the resource is synced.

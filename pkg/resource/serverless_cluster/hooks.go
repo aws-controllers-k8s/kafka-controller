@@ -31,6 +31,7 @@ import (
 	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
 	corev1 "k8s.io/api/core/v1"
 
+	svcapitypes "github.com/aws-controllers-k8s/kafka-controller/apis/v1alpha1"
 	"github.com/aws-controllers-k8s/kafka-controller/pkg/sync"
 )
 
@@ -150,7 +151,7 @@ func (rm *resourceManager) customUpdate(
 	updatedRes.ko.Status = latest.ko.Status
 
 	if !serverlessClusterActive(latest) {
-		msg := "ServerlessCluster is in '" + *latest.ko.Status.State + "' state"
+		msg := "ServerlessCluster is in '" + getState(latest.ko.Status.State) + "' state"
 		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &msg, nil)
 		if serverlessClusterHasTerminalStatus(latest) {
 			ackcondition.SetTerminal(updatedRes, corev1.ConditionTrue, &msg, nil)
@@ -171,6 +172,7 @@ func (rm *resourceManager) customUpdate(
 		}
 	}
 
+	// handle provisioned cluster updates
 	switch {
 	case delta.DifferentAt("Spec.Provisioned.ClientAuthentication"):
 		return rm.updateClientAuthentication(ctx, updatedRes, latest)
@@ -194,6 +196,14 @@ func (rm *resourceManager) customUpdate(
 	return updatedRes, nil
 }
 
+func getState(state *string) string {
+	if state == nil {
+		return "Unknown"
+	}
+
+	return *state
+}
+
 // updateNumberOfBrokerNodes updates the number of broker
 // nodes for the kafka cluster
 func (rm *resourceManager) updateNumberOfBrokerNodes(
@@ -208,7 +218,7 @@ func (rm *resourceManager) updateNumberOfBrokerNodes(
 	_, err = rm.sdkapi.UpdateBrokerCount(ctx, &svcsdk.UpdateBrokerCountInput{
 		ClusterArn:                (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
 		CurrentVersion:            latest.ko.Status.CurrentVersion,
-		TargetNumberOfBrokerNodes: int32OrNil(desired.ko.Spec.Provisioned.NumberOfBrokerNodes),
+		TargetNumberOfBrokerNodes: getNumberOfBrokerNodes(desired.ko.Spec.Provisioned),
 	})
 	rm.metrics.RecordAPICall("UPDATE", "UpdateBrokerCount", err)
 	if err != nil {
@@ -218,6 +228,13 @@ func (rm *resourceManager) updateNumberOfBrokerNodes(
 	ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
 
 	return desired, requeueAfterAsyncUpdate()
+}
+
+func getNumberOfBrokerNodes(provisioned *svcapitypes.ProvisionedRequest) *int32 {
+	if provisioned == nil || provisioned.NumberOfBrokerNodes == nil {
+		return nil
+	}
+	return int32OrNil(provisioned.NumberOfBrokerNodes)
 }
 
 // updateBrokerType updates the broker type of the
@@ -233,7 +250,7 @@ func (rm *resourceManager) updateBrokerType(
 	_, err = rm.sdkapi.UpdateBrokerType(ctx, &svcsdk.UpdateBrokerTypeInput{
 		ClusterArn:         (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
 		CurrentVersion:     latest.ko.Status.CurrentVersion,
-		TargetInstanceType: desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.InstanceType,
+		TargetInstanceType: getInstanceType(desired.ko.Spec.Provisioned),
 	})
 	rm.metrics.RecordAPICall("UPDATE", "UpdateBrokerType", err)
 	if err != nil {
@@ -243,6 +260,15 @@ func (rm *resourceManager) updateBrokerType(
 	ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
 
 	return desired, requeueAfterAsyncUpdate()
+}
+
+func getInstanceType(provisioned *svcapitypes.ProvisionedRequest) *string {
+	if provisioned == nil || provisioned.BrokerNodeGroupInfo == nil ||
+		provisioned.BrokerNodeGroupInfo.InstanceType == nil {
+		return nil
+	}
+
+	return provisioned.BrokerNodeGroupInfo.InstanceType
 }
 
 // updateBrokerStorate updates the volumeSize of the
@@ -262,7 +288,7 @@ func (rm *resourceManager) updateBrokerStorage(
 		TargetBrokerEBSVolumeInfo: []svcsdktypes.BrokerEBSVolumeInfo{
 			{
 				KafkaBrokerNodeId: aws.String("ALL"),
-				VolumeSizeGB:      int32OrNil(desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize),
+				VolumeSizeGB:      getVolumeSize(desired.ko.Spec.Provisioned),
 			},
 		},
 	})
@@ -273,6 +299,16 @@ func (rm *resourceManager) updateBrokerStorage(
 	message := "kafka is updating broker storage"
 	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
 	return desired, requeueAfterAsyncUpdate()
+}
+
+func getVolumeSize(provisioned *svcapitypes.ProvisionedRequest) *int32 {
+	if provisioned == nil || provisioned.BrokerNodeGroupInfo == nil ||
+		provisioned.BrokerNodeGroupInfo.StorageInfo == nil ||
+		provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo == nil ||
+		provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize == nil {
+		return nil
+	}
+	return int32OrNil(provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize)
 }
 
 // updateClientAuthentication updates the kafka cluster
@@ -286,14 +322,12 @@ func (rm *resourceManager) updateClientAuthentication(
 	exit := rlog.Trace("rm.updateClientAuthentication")
 	defer func() { exit(err) }()
 
-	input := &svcsdk.UpdateSecurityInput{}
-	if latest.ko.Status.CurrentVersion != nil {
-		input.CurrentVersion = desired.ko.Status.CurrentVersion
+	input := &svcsdk.UpdateSecurityInput{
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
 	}
-	if latest.ko.Status.ACKResourceMetadata.ARN != nil {
-		input.ClusterArn = (*string)(desired.ko.Status.ACKResourceMetadata.ARN)
-	}
-	if desired.ko.Spec.Provisioned.ClientAuthentication != nil {
+
+	if desired.ko.Spec.Provisioned != nil && desired.ko.Spec.Provisioned.ClientAuthentication != nil {
 		f0 := &svcsdktypes.ClientAuthentication{}
 		if desired.ko.Spec.Provisioned.ClientAuthentication.SASL != nil {
 			f0f0 := &svcsdktypes.Sasl{}
@@ -330,6 +364,19 @@ func (rm *resourceManager) updateClientAuthentication(
 			}
 		}
 		input.ClientAuthentication = f0
+	} else if desired.ko.Spec.Serverless != nil && desired.ko.Spec.Serverless.ClientAuthentication != nil {
+		f0 := &svcsdktypes.ClientAuthentication{}
+		if desired.ko.Spec.Serverless.ClientAuthentication.SASL != nil {
+			f0f0 := &svcsdktypes.Sasl{}
+			if desired.ko.Spec.Serverless.ClientAuthentication.SASL.IAM != nil &&
+				desired.ko.Spec.Serverless.ClientAuthentication.SASL.IAM.Enabled != nil {
+				f0f0f0 := &svcsdktypes.Scram{
+					Enabled: desired.ko.Spec.Serverless.ClientAuthentication.SASL.IAM.Enabled,
+				}
+				f0f0.Scram = f0f0f0
+			}
+			f0.Sasl = f0f0
+		}
 	}
 
 	_, err = rm.sdkapi.UpdateSecurity(ctx, input)
@@ -518,57 +565,6 @@ func (rm *resourceManager) batchDisassociateScramSecret(
 	}
 
 	return err
-}
-
-func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
-	// Set MSK defaults
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo == nil {
-		a.ko.Spec.Provisioned.BrokerNodeGroupInfo = b.ko.Spec.Provisioned.BrokerNodeGroupInfo
-	}
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution == nil {
-		a.ko.Spec.Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution = aws.String(string(svcsdktypes.BrokerAZDistributionDefault))
-	}
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo == nil && b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
-		a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo = b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo
-	}
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
-		if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess == nil && b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
-			a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess = b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess
-		}
-		if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
-			a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = aws.String("DISABLED")
-		}
-	}
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups == nil {
-		a.ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups = b.ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups
-	}
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo == nil {
-		a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo = b.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo
-	}
-	if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo != nil {
-		if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo == nil {
-			a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo = b.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo
-		}
-		if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize == nil {
-			a.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize = b.ko.Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
-		}
-	}
-
-	if a.ko.Spec.Provisioned.ClientAuthentication == nil {
-		a.ko.Spec.Provisioned.ClientAuthentication = b.ko.Spec.Provisioned.ClientAuthentication
-	}
-	if a.ko.Spec.Provisioned.EncryptionInfo == nil {
-		a.ko.Spec.Provisioned.EncryptionInfo = b.ko.Spec.Provisioned.EncryptionInfo
-	}
-	if a.ko.Spec.Provisioned.EnhancedMonitoring == nil {
-		a.ko.Spec.Provisioned.EnhancedMonitoring = aws.String(string(svcsdktypes.EnhancedMonitoringDefault))
-	}
-	if a.ko.Spec.Provisioned.OpenMonitoring == nil {
-		a.ko.Spec.Provisioned.OpenMonitoring = b.ko.Spec.Provisioned.OpenMonitoring
-	}
-	if a.ko.Spec.Provisioned.StorageMode == nil {
-		a.ko.Spec.Provisioned.StorageMode = aws.String(string(svcsdktypes.StorageModeLocal))
-	}
 }
 
 // sdkDelete deletes the supplied resource in the backend AWS service API
