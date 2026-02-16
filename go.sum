@@ -1,3 +1,5 @@
+github.com/aws-controllers-k8s/ec2-controller v1.9.2 h1:ZDdRx/tTeQs4d3GQv8Orp360DmrsbIkrkofS/gHigck=
+github.com/aws-controllers-k8s/ec2-controller v1.9.2/go.mod h1:AXhpzXdOkDQJZ/WgKksXP65ukRo9WJJixk4glDU2mfE=
 github.com/aws-controllers-k8s/runtime v0.57.0 h1:cFyQtKX5n7m+soh6uVT64B1+SvmGgHfx2pyX39sXsbA=
 github.com/aws-controllers-k8s/runtime v0.57.0/go.mod h1:OkUJN+Ds799JLYZsMJrO2vDJ4snxUeHK2MgrQHbU+Qc=
 github.com/aws-controllers-k8s/secretsmanager-controller v0.0.7 h1:b+RT3ilVlahCSskt91YU784Bj0bF/hff4KaqmVCbisQ=

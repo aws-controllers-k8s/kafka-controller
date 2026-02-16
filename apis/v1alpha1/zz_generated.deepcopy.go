@@ -112,6 +112,17 @@ func (in *BrokerNodeGroupInfo) DeepCopyInto(out *BrokerNodeGroupInfo) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.ClientSubnetRefs != nil {
+		in, out := &in.ClientSubnetRefs, &out.ClientSubnetRefs
+		*out = make([]*corev1alpha1.AWSResourceReferenceWrapper, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(corev1alpha1.AWSResourceReferenceWrapper)
+				(*in).DeepCopyInto(*out)
+			}
+		}
+	}
 	if in.ClientSubnets != nil {
 		in, out := &in.ClientSubnets, &out.ClientSubnets
 		*out = make([]*string, len(*in))

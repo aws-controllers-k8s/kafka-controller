@@ -66,6 +66,11 @@ resources:
           resource: Secret
           service_name: secretsmanager
           path: Status.ACKResourceMetadata.ARN
+      BrokerNodeGroupInfo.ClientSubnets:
+        references:
+          service_name: ec2
+          resource: Subnet
+          path: Status.SubnetID
       BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
         go_tag: json:"type,omitempty"
       ZookeeperConnectString:
@@ -131,6 +136,11 @@ resources:
           resource: Secret
           service_name: secretsmanager
           path: Status.ACKResourceMetadata.ARN
+      Provisioned.BrokerNodeGroupInfo.ClientSubnets:
+        references:
+          service_name: ec2
+          resource: Subnet
+          path: Status.SubnetID
       ClusterARN:
         is_arn: true
       KafkaVersion:

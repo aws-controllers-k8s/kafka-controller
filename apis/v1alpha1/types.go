@@ -59,8 +59,10 @@ type BrokerNodeGroupInfo struct {
 	//
 	// Amazon MSK distributes the broker nodes evenly across the Availability Zones
 	// that correspond to the subnets you provide when you create the cluster.
-	BrokerAZDistribution *string   `json:"brokerAZDistribution,omitempty"`
-	ClientSubnets        []*string `json:"clientSubnets,omitempty"`
+	BrokerAZDistribution *string `json:"brokerAZDistribution,omitempty"`
+	// Reference field for ClientSubnets
+	ClientSubnetRefs []*ackv1alpha1.AWSResourceReferenceWrapper `json:"clientSubnetRefs,omitempty"`
+	ClientSubnets    []*string                                  `json:"clientSubnets,omitempty"`
 	// Information about the broker access configuration.
 	ConnectivityInfo *ConnectivityInfo `json:"connectivityInfo,omitempty"`
 	InstanceType     *string           `json:"instanceType,omitempty"`
