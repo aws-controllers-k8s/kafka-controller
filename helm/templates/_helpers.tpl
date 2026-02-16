@@ -70,6 +70,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ec2.services.k8s.aws
+  resources:
+  - subnets
+  - subnets/status
+  verbs:
+  - get
+  - list
+- apiGroups:
   - kafka.services.k8s.aws
   resources:
   - clusters

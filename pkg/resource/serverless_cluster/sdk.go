@@ -363,7 +363,7 @@ func (rm *resourceManager) sdkFind(
 		return &resource{ko}, nil
 	}
 
-	// Serverless Clusters do not use Scram Secrets
+	// Unprovisioned Clusters do not use Scram Secrets
 	if ko.Spec.Provisioned != nil {
 		ko.Spec.AssociatedSCRAMSecrets, err = rm.getAssociatedScramSecrets(ctx, &resource{ko})
 		if err != nil {
