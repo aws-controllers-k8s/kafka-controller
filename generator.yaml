@@ -19,10 +19,6 @@ operations:
     resource_name: ServerlessCluster
 resources:
   Configuration:
-    fields:
-      Tags:
-        compare:
-          is_ignored: true
     tags:
       ignore: true
     hooks:
@@ -143,9 +139,6 @@ resources:
           path: Status.SubnetID
       ClusterARN:
         is_arn: true
-      KafkaVersion:
-        set:
-          - from: Provisioned.CurrentBrokerSoftwareInfo.KafkaVersion
       CurrentVersion:
         from:
           operation: DescribeCluster
