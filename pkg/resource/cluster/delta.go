@@ -73,6 +73,13 @@ func newResourceDelta(
 		if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo) {
 			delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo)
 		} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType) {
+				delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+			} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+				if *a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != *b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType {
+					delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+				}
+			}
 			if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess) {
 				delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess)
 			} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
@@ -367,6 +374,17 @@ func newResourceDelta(
 						delta.Add("Spec.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker", a.ko.Spec.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker, b.ko.Spec.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker)
 					}
 				}
+			}
+		}
+	}
+	if ackcompare.HasNilDifference(a.ko.Spec.Rebalancing, b.ko.Spec.Rebalancing) {
+		delta.Add("Spec.Rebalancing", a.ko.Spec.Rebalancing, b.ko.Spec.Rebalancing)
+	} else if a.ko.Spec.Rebalancing != nil && b.ko.Spec.Rebalancing != nil {
+		if ackcompare.HasNilDifference(a.ko.Spec.Rebalancing.Status, b.ko.Spec.Rebalancing.Status) {
+			delta.Add("Spec.Rebalancing.Status", a.ko.Spec.Rebalancing.Status, b.ko.Spec.Rebalancing.Status)
+		} else if a.ko.Spec.Rebalancing.Status != nil && b.ko.Spec.Rebalancing.Status != nil {
+			if *a.ko.Spec.Rebalancing.Status != *b.ko.Spec.Rebalancing.Status {
+				delta.Add("Spec.Rebalancing.Status", a.ko.Spec.Rebalancing.Status, b.ko.Spec.Rebalancing.Status)
 			}
 		}
 	}

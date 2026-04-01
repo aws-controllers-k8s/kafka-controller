@@ -51,6 +51,10 @@ type ClusterSpec struct {
 	NumberOfBrokerNodes *int64 `json:"numberOfBrokerNodes"`
 	// The settings for open monitoring.
 	OpenMonitoring *OpenMonitoringInfo `json:"openMonitoring,omitempty"`
+	// Specifies if intelligent rebalancing should be turned on for the new MSK
+	// Provisioned cluster with Express brokers. By default, intelligent rebalancing
+	// status is ACTIVE for all new clusters.
+	Rebalancing *Rebalancing `json:"rebalancing,omitempty"`
 	// This controls storage mode for supported storage tiers.
 	StorageMode *string `json:"storageMode,omitempty"`
 	// Create tags when creating the cluster.

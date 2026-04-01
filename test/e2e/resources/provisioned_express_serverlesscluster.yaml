@@ -1,0 +1,17 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: ServerlessCluster
+metadata:
+  name: $PROVISIONED_CLUSTER_NAME
+spec:
+  name: $PROVISIONED_CLUSTER_NAME
+  provisioned:
+    brokerNodeGroupInfo:
+      instanceType: "express.m7g.large"
+      clientSubnets:
+        - $SUBNET_ID_1
+        - $SUBNET_ID_2
+        - $SUBNET_ID_3
+    kafkaVersion: "3.8.x"
+    numberOfBrokerNodes: 3
+    rebalancing:
+      status: "ACTIVE"

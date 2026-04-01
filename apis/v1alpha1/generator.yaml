@@ -4,6 +4,7 @@ ignore:
     # - ClusterV2
     - VpcConnection
     - Replicator
+    - Topic
     #- Configuration
   field_paths:
    - ConnectivityInfo.VpcConnectivity
@@ -53,6 +54,9 @@ resources:
       terminal_codes:
         - BadRequestException
     fields:
+      Rebalancing:
+        late_initialize:
+          skip_incomplete_check: {}
       # In order to support associating zero or more scram secrets to a cluster, we use
       # custom update code path that uses the BatchAssociate/BatchDisassociateScramSecret API
       # calls to manage the set of SecretARNs associated to this Cluster.
@@ -186,6 +190,9 @@ resources:
         late_initialize:
           skip_incomplete_check: {}
       Provisioned.StorageMode:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.Rebalancing:
         late_initialize:
           skip_incomplete_check: {}
     hooks:

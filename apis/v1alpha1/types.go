@@ -138,6 +138,12 @@ type ClusterInfo struct {
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
 	OpenMonitoring *OpenMonitoring `json:"openMonitoring,omitempty"`
+	// Specifies whether or not intelligent rebalancing is turned on for a newly
+	// created MSK Provisioned cluster with Express brokers. Intelligent rebalancing
+	// performs automatic partition balancing operations when you scale your clusters
+	// up or down. By default, intelligent rebalancing is ACTIVE for all new Express-based
+	// clusters.
+	Rebalancing *Rebalancing `json:"rebalancing,omitempty"`
 	// The state of the Apache Kafka cluster.
 	State     *string    `json:"state,omitempty"`
 	StateInfo *StateInfo `json:"stateInfo,omitempty"`
@@ -179,6 +185,16 @@ type ClusterOperationV2 struct {
 	OperationState *string      `json:"operationState,omitempty"`
 	OperationType  *string      `json:"operationType,omitempty"`
 	StartTime      *metav1.Time `json:"startTime,omitempty"`
+}
+
+// Returns information about a serverless cluster operation.
+type ClusterOperationV2Serverless struct {
+	// Describes the cluster's connectivity information, such as its network type,
+	// which is IPv4 or DUAL.
+	SourceClusterInfo *ServerlessConnectivityInfo `json:"sourceClusterInfo,omitempty"`
+	// Describes the cluster's connectivity information, such as its network type,
+	// which is IPv4 or DUAL.
+	TargetClusterInfo *ServerlessConnectivityInfo `json:"targetClusterInfo,omitempty"`
 }
 
 // Returns information about a cluster operation.
@@ -247,6 +263,11 @@ type Configuration_SDK struct {
 
 // Information about the broker access configuration.
 type ConnectivityInfo struct {
+	// The network type of the cluster, which is IPv4 or DUAL. The DUAL network
+	// type uses both IPv4 and IPv6 addresses for your cluster and its resources.
+	//
+	// By default, a cluster uses the IPv4 network type.
+	NetworkType *string `json:"networkType,omitempty"`
 	// Public access control for brokers.
 	PublicAccess *PublicAccess `json:"publicAccess,omitempty"`
 }
@@ -373,6 +394,12 @@ type MutableClusterInfo struct {
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
 	OpenMonitoring *OpenMonitoring `json:"openMonitoring,omitempty"`
+	// Specifies whether or not intelligent rebalancing is turned on for a newly
+	// created MSK Provisioned cluster with Express brokers. Intelligent rebalancing
+	// performs automatic partition balancing operations when you scale your clusters
+	// up or down. By default, intelligent rebalancing is ACTIVE for all new Express-based
+	// clusters.
+	Rebalancing *Rebalancing `json:"rebalancing,omitempty"`
 	// Controls storage mode for various supported storage tiers.
 	StorageMode *string `json:"storageMode,omitempty"`
 }
@@ -445,6 +472,12 @@ type Provisioned struct {
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
 	OpenMonitoring *OpenMonitoringInfo `json:"openMonitoring,omitempty"`
+	// Specifies whether or not intelligent rebalancing is turned on for a newly
+	// created MSK Provisioned cluster with Express brokers. Intelligent rebalancing
+	// performs automatic partition balancing operations when you scale your clusters
+	// up or down. By default, intelligent rebalancing is ACTIVE for all new Express-based
+	// clusters.
+	Rebalancing *Rebalancing `json:"rebalancing,omitempty"`
 	// Controls storage mode for various supported storage tiers.
 	StorageMode               *string `json:"storageMode,omitempty"`
 	ZookeeperConnectString    *string `json:"zookeeperConnectString,omitempty"`
@@ -473,6 +506,12 @@ type ProvisionedRequest struct {
 	NumberOfBrokerNodes *int64       `json:"numberOfBrokerNodes,omitempty"`
 	// JMX and Node monitoring for the MSK cluster.
 	OpenMonitoring *OpenMonitoringInfo `json:"openMonitoring,omitempty"`
+	// Specifies whether or not intelligent rebalancing is turned on for a newly
+	// created MSK Provisioned cluster with Express brokers. Intelligent rebalancing
+	// performs automatic partition balancing operations when you scale your clusters
+	// up or down. By default, intelligent rebalancing is ACTIVE for all new Express-based
+	// clusters.
+	Rebalancing *Rebalancing `json:"rebalancing,omitempty"`
 	// Controls storage mode for various supported storage tiers.
 	StorageMode *string `json:"storageMode,omitempty"`
 }
@@ -487,6 +526,17 @@ type ProvisionedThroughput struct {
 // Public access control for brokers.
 type PublicAccess struct {
 	Type *string `json:"type,omitempty"`
+}
+
+// Specifies whether or not intelligent rebalancing is turned on for a newly
+// created MSK Provisioned cluster with Express brokers. Intelligent rebalancing
+// performs automatic partition balancing operations when you scale your clusters
+// up or down. By default, intelligent rebalancing is ACTIVE for all new Express-based
+// clusters.
+type Rebalancing struct {
+	// Intelligent rebalancing status. The default intelligent rebalancing status
+	// is ACTIVE for all new Express-based clusters.
+	Status *string `json:"status,omitempty"`
 }
 
 // Specifies configuration for replication between a source and target Kafka
@@ -548,13 +598,26 @@ type SCRAM struct {
 type Serverless struct {
 	// Includes all client authentication information.
 	ClientAuthentication *ServerlessClientAuthentication `json:"clientAuthentication,omitempty"`
-	VPCConfigs           []*VPCConfig                    `json:"vpcConfigs,omitempty"`
+	// Describes the cluster's connectivity information, such as its network type,
+	// which is IPv4 or DUAL.
+	ConnectivityInfo *ServerlessConnectivityInfo `json:"connectivityInfo,omitempty"`
+	VPCConfigs       []*VPCConfig                `json:"vpcConfigs,omitempty"`
 }
 
 // Includes all client authentication information.
 type ServerlessClientAuthentication struct {
 	// Details for client authentication using SASL.
 	SASL *ServerlessSASL `json:"sasl,omitempty"`
+}
+
+// Describes the cluster's connectivity information, such as its network type,
+// which is IPv4 or DUAL.
+type ServerlessConnectivityInfo struct {
+	// The network type of the cluster, which is IPv4 or DUAL. The DUAL network
+	// type uses both IPv4 and IPv6 addresses for your cluster and its resources.
+	//
+	// By default, a cluster uses the IPv4 network type.
+	NetworkType *string `json:"networkType,omitempty"`
 }
 
 // Serverless cluster request.
@@ -586,6 +649,21 @@ type StorageInfo struct {
 type TLS struct {
 	CertificateAuthorityARNList []*string `json:"certificateAuthorityARNList,omitempty"`
 	Enabled                     *bool     `json:"enabled,omitempty"`
+}
+
+// Includes identification info about the topic.
+type TopicInfo struct {
+	OutOfSyncReplicaCount *int64  `json:"outOfSyncReplicaCount,omitempty"`
+	PartitionCount        *int64  `json:"partitionCount,omitempty"`
+	ReplicationFactor     *int64  `json:"replicationFactor,omitempty"`
+	TopicARN              *string `json:"topicARN,omitempty"`
+	TopicName             *string `json:"topicName,omitempty"`
+}
+
+// Contains information about a topic partition.
+type TopicPartitionInfo struct {
+	Leader    *int64 `json:"leader,omitempty"`
+	Partition *int64 `json:"partition,omitempty"`
 }
 
 // Details about topic replication.

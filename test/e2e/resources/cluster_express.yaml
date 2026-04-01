@@ -1,0 +1,18 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  name: $CLUSTER_NAME
+  brokerNodeGroupInfo:
+    instanceType: "express.m7g.large"
+    clientSubnets:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+      - $SUBNET_ID_3
+  kafkaVersion: "3.8.x"
+  numberOfBrokerNodes: 3
+  rebalancing:
+    status: "ACTIVE"
+  tags:
+    tag1: val1

@@ -191,6 +191,12 @@ func (rm *resourceManager) customUpdate(
 
 	case delta.DifferentAt("Spec.Provisioned.NumberOfBrokerNodes"):
 		return rm.updateNumberOfBrokerNodes(ctx, updatedRes, latest)
+
+	case delta.DifferentAt("Spec.Provisioned.Rebalancing"):
+		return rm.updateRebalancing(ctx, updatedRes, latest)
+
+	case delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType"):
+		return rm.updateConnectivity(ctx, updatedRes, latest)
 	}
 
 	return updatedRes, nil
@@ -269,6 +275,78 @@ func getInstanceType(provisioned *svcapitypes.ProvisionedRequest) *string {
 	}
 
 	return provisioned.BrokerNodeGroupInfo.InstanceType
+}
+
+// updateConnectivity updates the connectivity configuration
+// of the kafka cluster (e.g. NetworkType)
+func (rm *resourceManager) updateConnectivity(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateConnectivity")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateConnectivityInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.Provisioned != nil &&
+		desired.ko.Spec.Provisioned.BrokerNodeGroupInfo != nil &&
+		desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+		ci := &svcsdktypes.ConnectivityInfo{}
+		if desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+			ci.NetworkType = svcsdktypes.NetworkType(*desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+		}
+		if desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil &&
+			desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
+			ci.PublicAccess = &svcsdktypes.PublicAccess{
+				Type: desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type,
+			}
+		}
+		input.ConnectivityInfo = ci
+	}
+	_, err = rm.sdkapi.UpdateConnectivity(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateConnectivity", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating connectivity"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateRebalancing updates the intelligent rebalancing status
+// of the kafka cluster (Express brokers only)
+func (rm *resourceManager) updateRebalancing(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateRebalancing")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateRebalancingInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.Provisioned != nil &&
+		desired.ko.Spec.Provisioned.Rebalancing != nil &&
+		desired.ko.Spec.Provisioned.Rebalancing.Status != nil {
+		input.Rebalancing = &svcsdktypes.Rebalancing{
+			Status: svcsdktypes.RebalancingStatus(*desired.ko.Spec.Provisioned.Rebalancing.Status),
+		}
+	}
+	_, err = rm.sdkapi.UpdateRebalancing(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateRebalancing", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating rebalancing status"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
 }
 
 // updateBrokerStorate updates the volumeSize of the

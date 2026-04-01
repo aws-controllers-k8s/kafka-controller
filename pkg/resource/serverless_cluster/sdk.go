@@ -125,12 +125,15 @@ func (rm *resourceManager) sdkFind(
 			}
 			if resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 				f6f0f2 := &svcapitypes.ConnectivityInfo{}
+				if resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != "" {
+					f6f0f2.NetworkType = aws.String(string(resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType))
+				}
 				if resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
-					f6f0f2f0 := &svcapitypes.PublicAccess{}
+					f6f0f2f1 := &svcapitypes.PublicAccess{}
 					if resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
-						f6f0f2f0.Type = resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
+						f6f0f2f1.Type = resp.ClusterInfo.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 					}
-					f6f0f2.PublicAccess = f6f0f2f0
+					f6f0f2.PublicAccess = f6f0f2f1
 				}
 				f6f0.ConnectivityInfo = f6f0f2
 			}
@@ -295,6 +298,13 @@ func (rm *resourceManager) sdkFind(
 			}
 			f6.OpenMonitoring = f6f8
 		}
+		if resp.ClusterInfo.Provisioned.Rebalancing != nil {
+			f6f9 := &svcapitypes.Rebalancing{}
+			if resp.ClusterInfo.Provisioned.Rebalancing.Status != "" {
+				f6f9.Status = aws.String(string(resp.ClusterInfo.Provisioned.Rebalancing.Status))
+			}
+			f6.Rebalancing = f6f9
+		}
 		if resp.ClusterInfo.Provisioned.StorageMode != "" {
 			f6.StorageMode = aws.String(string(resp.ClusterInfo.Provisioned.StorageMode))
 		}
@@ -320,18 +330,18 @@ func (rm *resourceManager) sdkFind(
 			f7.ClientAuthentication = f7f0
 		}
 		if resp.ClusterInfo.Serverless.VpcConfigs != nil {
-			f7f1 := []*svcapitypes.VPCConfig{}
-			for _, f7f1iter := range resp.ClusterInfo.Serverless.VpcConfigs {
-				f7f1elem := &svcapitypes.VPCConfig{}
-				if f7f1iter.SecurityGroupIds != nil {
-					f7f1elem.SecurityGroupIDs = aws.StringSlice(f7f1iter.SecurityGroupIds)
+			f7f2 := []*svcapitypes.VPCConfig{}
+			for _, f7f2iter := range resp.ClusterInfo.Serverless.VpcConfigs {
+				f7f2elem := &svcapitypes.VPCConfig{}
+				if f7f2iter.SecurityGroupIds != nil {
+					f7f2elem.SecurityGroupIDs = aws.StringSlice(f7f2iter.SecurityGroupIds)
 				}
-				if f7f1iter.SubnetIds != nil {
-					f7f1elem.SubnetIDs = aws.StringSlice(f7f1iter.SubnetIds)
+				if f7f2iter.SubnetIds != nil {
+					f7f2elem.SubnetIDs = aws.StringSlice(f7f2iter.SubnetIds)
 				}
-				f7f1 = append(f7f1, f7f1elem)
+				f7f2 = append(f7f2, f7f2elem)
 			}
-			f7.VPCConfigs = f7f1
+			f7.VPCConfigs = f7f2
 		}
 		ko.Spec.Serverless = f7
 	} else {
@@ -482,12 +492,15 @@ func (rm *resourceManager) newCreateRequestPayload(
 			}
 			if r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 				f1f0f2 := &svcsdktypes.ConnectivityInfo{}
+				if r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+					f1f0f2.NetworkType = svcsdktypes.NetworkType(*r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+				}
 				if r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
-					f1f0f2f0 := &svcsdktypes.PublicAccess{}
+					f1f0f2f1 := &svcsdktypes.PublicAccess{}
 					if r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
-						f1f0f2f0.Type = r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
+						f1f0f2f1.Type = r.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 					}
-					f1f0f2.PublicAccess = f1f0f2f0
+					f1f0f2.PublicAccess = f1f0f2f1
 				}
 				f1f0.ConnectivityInfo = f1f0f2
 			}
@@ -676,6 +689,13 @@ func (rm *resourceManager) newCreateRequestPayload(
 				f1f8.Prometheus = f1f8f0
 			}
 			f1.OpenMonitoring = f1f8
+		}
+		if r.ko.Spec.Provisioned.Rebalancing != nil {
+			f1f9 := &svcsdktypes.Rebalancing{}
+			if r.ko.Spec.Provisioned.Rebalancing.Status != nil {
+				f1f9.Status = svcsdktypes.RebalancingStatus(*r.ko.Spec.Provisioned.Rebalancing.Status)
+			}
+			f1.Rebalancing = f1f9
 		}
 		if r.ko.Spec.Provisioned.StorageMode != nil {
 			f1.StorageMode = svcsdktypes.StorageMode(*r.ko.Spec.Provisioned.StorageMode)

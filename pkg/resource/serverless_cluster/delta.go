@@ -82,6 +82,13 @@ func newResourceDelta(
 			if ackcompare.HasNilDifference(a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo) {
 				delta.Add("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo", a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo)
 			} else if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType) {
+					delta.Add("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType", a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+				} else if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil && b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+					if *a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != *b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType {
+						delta.Add("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType", a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+					}
+				}
 				if ackcompare.HasNilDifference(a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess) {
 					delta.Add("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess", a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess, b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess)
 				} else if a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil && b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
@@ -369,6 +376,17 @@ func newResourceDelta(
 							delta.Add("Spec.Provisioned.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker", a.ko.Spec.Provisioned.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker, b.ko.Spec.Provisioned.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker)
 						}
 					}
+				}
+			}
+		}
+		if ackcompare.HasNilDifference(a.ko.Spec.Provisioned.Rebalancing, b.ko.Spec.Provisioned.Rebalancing) {
+			delta.Add("Spec.Provisioned.Rebalancing", a.ko.Spec.Provisioned.Rebalancing, b.ko.Spec.Provisioned.Rebalancing)
+		} else if a.ko.Spec.Provisioned.Rebalancing != nil && b.ko.Spec.Provisioned.Rebalancing != nil {
+			if ackcompare.HasNilDifference(a.ko.Spec.Provisioned.Rebalancing.Status, b.ko.Spec.Provisioned.Rebalancing.Status) {
+				delta.Add("Spec.Provisioned.Rebalancing.Status", a.ko.Spec.Provisioned.Rebalancing.Status, b.ko.Spec.Provisioned.Rebalancing.Status)
+			} else if a.ko.Spec.Provisioned.Rebalancing.Status != nil && b.ko.Spec.Provisioned.Rebalancing.Status != nil {
+				if *a.ko.Spec.Provisioned.Rebalancing.Status != *b.ko.Spec.Provisioned.Rebalancing.Status {
+					delta.Add("Spec.Provisioned.Rebalancing.Status", a.ko.Spec.Provisioned.Rebalancing.Status, b.ko.Spec.Provisioned.Rebalancing.Status)
 				}
 			}
 		}
