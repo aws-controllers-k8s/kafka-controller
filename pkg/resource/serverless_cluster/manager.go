@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{"Provisioned.BrokerNodeGroupInfo", "Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type", "Provisioned.BrokerNodeGroupInfo.SecurityGroups", "Provisioned.BrokerNodeGroupInfo.StorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize", "Provisioned.ClientAuthentication", "Provisioned.EncryptionInfo", "Provisioned.EnhancedMonitoring", "Provisioned.OpenMonitoring", "Provisioned.StorageMode"}
+var lateInitializeFieldNames = []string{"Provisioned.BrokerNodeGroupInfo", "Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type", "Provisioned.BrokerNodeGroupInfo.SecurityGroups", "Provisioned.BrokerNodeGroupInfo.StorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize", "Provisioned.ClientAuthentication", "Provisioned.EncryptionInfo", "Provisioned.EnhancedMonitoring", "Provisioned.OpenMonitoring", "Provisioned.Rebalancing", "Provisioned.StorageMode"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -350,6 +350,11 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
 		if observedKo.Spec.Provisioned.OpenMonitoring != nil && latestKo.Spec.Provisioned.OpenMonitoring == nil {
 			latestKo.Spec.Provisioned.OpenMonitoring = observedKo.Spec.Provisioned.OpenMonitoring
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.Rebalancing != nil && latestKo.Spec.Provisioned.Rebalancing == nil {
+			latestKo.Spec.Provisioned.Rebalancing = observedKo.Spec.Provisioned.Rebalancing
 		}
 	}
 	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {

@@ -101,12 +101,15 @@ func (rm *resourceManager) sdkFind(
 		}
 		if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 			f1f2 := &svcapitypes.ConnectivityInfo{}
+			if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != "" {
+				f1f2.NetworkType = aws.String(string(resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType))
+			}
 			if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
-				f1f2f0 := &svcapitypes.PublicAccess{}
+				f1f2f1 := &svcapitypes.PublicAccess{}
 				if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
-					f1f2f0.Type = resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
+					f1f2f1.Type = resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 				}
-				f1f2.PublicAccess = f1f2f0
+				f1f2.PublicAccess = f1f2f1
 			}
 			f1.ConnectivityInfo = f1f2
 		}
@@ -302,6 +305,15 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Spec.OpenMonitoring = nil
 	}
+	if resp.ClusterInfo.Rebalancing != nil {
+		f14 := &svcapitypes.Rebalancing{}
+		if resp.ClusterInfo.Rebalancing.Status != "" {
+			f14.Status = aws.String(string(resp.ClusterInfo.Rebalancing.Status))
+		}
+		ko.Spec.Rebalancing = f14
+	} else {
+		ko.Spec.Rebalancing = nil
+	}
 	if resp.ClusterInfo.State != "" {
 		ko.Status.State = aws.String(string(resp.ClusterInfo.State))
 	} else {
@@ -453,12 +465,15 @@ func (rm *resourceManager) newCreateRequestPayload(
 		}
 		if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 			f0f2 := &svcsdktypes.ConnectivityInfo{}
+			if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+				f0f2.NetworkType = svcsdktypes.NetworkType(*r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+			}
 			if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil {
-				f0f2f0 := &svcsdktypes.PublicAccess{}
+				f0f2f1 := &svcsdktypes.PublicAccess{}
 				if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
-					f0f2f0.Type = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
+					f0f2f1.Type = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 				}
-				f0f2.PublicAccess = f0f2f0
+				f0f2.PublicAccess = f0f2f1
 			}
 			f0.ConnectivityInfo = f0f2
 		}
@@ -650,6 +665,13 @@ func (rm *resourceManager) newCreateRequestPayload(
 			f9.Prometheus = f9f0
 		}
 		res.OpenMonitoring = f9
+	}
+	if r.ko.Spec.Rebalancing != nil {
+		f10 := &svcsdktypes.Rebalancing{}
+		if r.ko.Spec.Rebalancing.Status != nil {
+			f10.Status = svcsdktypes.RebalancingStatus(*r.ko.Spec.Rebalancing.Status)
+		}
+		res.Rebalancing = f10
 	}
 	if r.ko.Spec.StorageMode != nil {
 		res.StorageMode = svcsdktypes.StorageMode(*r.ko.Spec.StorageMode)

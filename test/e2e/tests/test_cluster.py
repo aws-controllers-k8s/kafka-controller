@@ -38,6 +38,7 @@ LONG_UPDATE_WAIT = 600
 
 # Time to wait after the cluster has changed status, for the CR to update
 CHECK_STATUS_WAIT_SECONDS = 60
+EXPRESS_WAIT_TIMEOUT_SECONDS = 60 * 60
 
 
 @pytest.fixture(scope="module")
@@ -226,3 +227,149 @@ class TestCluster:
             expected=desired_tags,
             actual=latest_tags,
         )
+
+
+@pytest.fixture(scope="module")
+def express_cluster():
+    cluster_name = random_suffix_name("ack-express", 24)
+
+    resources = get_bootstrap_resources()
+    vpc = resources.ClusterVPC
+    subnet_ids = vpc.public_subnets.subnet_ids
+    assert len(subnet_ids) >= 3, "Express brokers require 3 subnets in 3 AZs"
+
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_ids[0]
+    replacements["SUBNET_ID_2"] = subnet_ids[1]
+    replacements["SUBNET_ID_3"] = subnet_ids[2]
+
+    resource_data = load_resource(
+        "cluster_express",
+        additional_replacements=replacements,
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        CLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+
+    yield (ref, cr)
+
+    _, deleted = k8s.delete_custom_resource(
+        ref,
+        period_length=DELETE_WAIT_SECONDS,
+    )
+    assert deleted
+    cluster.wait_until_deleted(cluster_name)
+
+
+@service_marker
+@pytest.mark.canary
+class TestExpressCluster:
+    def test_create_express_cluster(self, express_cluster):
+        ref, _ = express_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        cr = k8s.get_resource(ref)
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+            timeout_seconds=EXPRESS_WAIT_TIMEOUT_SECONDS,
+        )
+
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
+        cr = k8s.get_resource(ref)
+        assert cr["status"]["state"] == "ACTIVE"
+        assert cr["spec"]["brokerNodeGroupInfo"]["instanceType"] == "express.m7g.large"
+        assert cr["spec"]["rebalancing"] is not None
+        assert cr["spec"]["rebalancing"]["status"] == "ACTIVE"
+
+        # Verify via AWS API
+        aws_cluster = cluster.get_by_arn(cluster_arn)
+        assert aws_cluster is not None
+        assert aws_cluster["Rebalancing"]["Status"] == "ACTIVE"
+
+    def test_update_rebalancing(self, express_cluster):
+        ref, _ = express_cluster
+
+        cr = k8s.get_resource(ref)
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        # Pause intelligent rebalancing
+        updates = {
+            "spec": {
+                "rebalancing": {
+                    "status": "PAUSED",
+                },
+            },
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+            timeout_seconds=EXPRESS_WAIT_TIMEOUT_SECONDS,
+        )
+
+        cr = k8s.get_resource(ref)
+        assert cr["spec"]["rebalancing"]["status"] == "PAUSED"
+
+        # Verify via AWS API
+        aws_cluster = cluster.get_by_arn(cluster_arn)
+        assert aws_cluster["Rebalancing"]["Status"] == "PAUSED"
+
+        # Re-enable intelligent rebalancing
+        updates = {
+            "spec": {
+                "rebalancing": {
+                    "status": "ACTIVE",
+                },
+            },
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+            timeout_seconds=EXPRESS_WAIT_TIMEOUT_SECONDS,
+        )
+
+        cr = k8s.get_resource(ref)
+        assert cr["spec"]["rebalancing"]["status"] == "ACTIVE"
+
+        # Verify via AWS API
+        aws_cluster = cluster.get_by_arn(cluster_arn)
+        assert aws_cluster["Rebalancing"]["Status"] == "ACTIVE"

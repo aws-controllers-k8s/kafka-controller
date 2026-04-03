@@ -81,10 +81,24 @@ const (
 	KafkaVersionStatus_DEPRECATED KafkaVersionStatus = "DEPRECATED"
 )
 
+type NetworkType string
+
+const (
+	NetworkType_DUAL NetworkType = "DUAL"
+	NetworkType_IPV4 NetworkType = "IPV4"
+)
+
 type NodeType string
 
 const (
 	NodeType_BROKER NodeType = "BROKER"
+)
+
+type RebalancingStatus string
+
+const (
+	RebalancingStatus_ACTIVE RebalancingStatus = "ACTIVE"
+	RebalancingStatus_PAUSED RebalancingStatus = "PAUSED"
 )
 
 type ReplicationStartingPositionType string
@@ -126,6 +140,15 @@ const (
 	TargetCompressionType_NONE   TargetCompressionType = "NONE"
 	TargetCompressionType_SNAPPY TargetCompressionType = "SNAPPY"
 	TargetCompressionType_ZSTD   TargetCompressionType = "ZSTD"
+)
+
+type TopicState string
+
+const (
+	TopicState_ACTIVE   TopicState = "ACTIVE"
+	TopicState_CREATING TopicState = "CREATING"
+	TopicState_DELETING TopicState = "DELETING"
+	TopicState_UPDATING TopicState = "UPDATING"
 )
 
 type UserIdentityType string

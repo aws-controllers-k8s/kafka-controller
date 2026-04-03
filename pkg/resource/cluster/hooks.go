@@ -188,6 +188,12 @@ func (rm *resourceManager) customUpdate(
 
 	case delta.DifferentAt("Spec.NumberOfBrokerNodes"):
 		return rm.updateNumberOfBrokerNodes(ctx, desired, latest)
+
+	case delta.DifferentAt("Spec.Rebalancing"):
+		return rm.updateRebalancing(ctx, desired, latest)
+
+	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType"):
+		return rm.updateConnectivity(ctx, desired, latest)
 	}
 
 	return updatedRes, nil
@@ -241,6 +247,75 @@ func (rm *resourceManager) updateBrokerType(
 	message := "kafka is updating broker instanceType"
 	ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &message, nil)
 
+	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateConnectivity updates the connectivity configuration
+// of the kafka cluster (e.g. NetworkType)
+func (rm *resourceManager) updateConnectivity(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateConnectivity")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateConnectivityInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.BrokerNodeGroupInfo != nil &&
+		desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+		ci := &svcsdktypes.ConnectivityInfo{}
+		if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+			ci.NetworkType = svcsdktypes.NetworkType(*desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType)
+		}
+		if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil &&
+			desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil {
+			ci.PublicAccess = &svcsdktypes.PublicAccess{
+				Type: desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type,
+			}
+		}
+		input.ConnectivityInfo = ci
+	}
+	_, err = rm.sdkapi.UpdateConnectivity(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateConnectivity", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating connectivity"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateRebalancing updates the intelligent rebalancing status
+// of the kafka cluster (Express brokers only)
+func (rm *resourceManager) updateRebalancing(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateRebalancing")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateRebalancingInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.Rebalancing != nil && desired.ko.Spec.Rebalancing.Status != nil {
+		input.Rebalancing = &svcsdktypes.Rebalancing{
+			Status: svcsdktypes.RebalancingStatus(*desired.ko.Spec.Rebalancing.Status),
+		}
+	}
+	_, err = rm.sdkapi.UpdateRebalancing(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateRebalancing", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating rebalancing status"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
 	return desired, requeueAfterAsyncUpdate()
 }
 
@@ -584,6 +659,9 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
 			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = aws.String("DISABLED")
 		}
+		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
+			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType
+		}
 	}
 	if a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups == nil {
 		a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups = b.ko.Spec.BrokerNodeGroupInfo.SecurityGroups
@@ -614,6 +692,9 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	}
 	if a.ko.Spec.StorageMode == nil {
 		a.ko.Spec.StorageMode = aws.String(string(svcsdktypes.StorageModeLocal))
+	}
+	if a.ko.Spec.Rebalancing == nil && b.ko.Spec.Rebalancing != nil {
+		a.ko.Spec.Rebalancing = b.ko.Spec.Rebalancing
 	}
 }
 

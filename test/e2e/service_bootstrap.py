@@ -27,7 +27,7 @@ def service_bootstrap() -> Resources:
 
     resources = BootstrapResources(
         ClusterVPC=VPC(
-            name_prefix="cluster-vpc", num_public_subnet=2, num_private_subnet=2
+            name_prefix="cluster-vpc", num_public_subnet=3, num_private_subnet=2
         ),
         SCRAMSecret1=Secret(
             name_prefix="AmazonMSK_",
