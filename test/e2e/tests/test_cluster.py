@@ -181,7 +181,7 @@ class TestCluster:
 
         latest_cluster = cluster.get_by_arn(cluster_arn)
         assert latest_cluster is not None
-        
+
         cr = k8s.get_resource(ref)
 
         latest_volume = latest_cluster['BrokerNodeGroupInfo']["StorageInfo"]["EbsStorageInfo"]["VolumeSize"]
@@ -227,6 +227,7 @@ class TestCluster:
             expected=desired_tags,
             actual=latest_tags,
         )
+
 
 
 @pytest.fixture(scope="module")
