@@ -17,6 +17,7 @@ import logging
 from acktest.bootstrapping import Resources, BootstrapFailureException
 from acktest.bootstrapping.vpc import VPC
 from acktest.bootstrapping.secretsmanager import Secret
+from acktest.bootstrapping.s3 import Bucket
 
 from e2e import bootstrap_directory
 from e2e.bootstrap_resources import BootstrapResources
@@ -37,6 +38,7 @@ def service_bootstrap() -> Resources:
             name_prefix="AmazonMSK_",
             plain_text='{"username":"test_user_2","password":"test_password_2"}',
         ),
+        LogBucket=Bucket(name_prefix="ack-msk-logs-"),
     )
 
     try:
