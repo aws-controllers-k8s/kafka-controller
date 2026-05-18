@@ -1,8 +1,15 @@
-	if resp.ClusterInfo != nil {
-		if resp.ClusterInfo.Provisioned != nil &&
-			resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo != nil &&
-			resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.KafkaVersion != nil {
+	if resp.ClusterInfo != nil &&
+		resp.ClusterInfo.Provisioned != nil &&
+		resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo != nil {
+		if resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.KafkaVersion != nil {
 			ko.Spec.Provisioned.KafkaVersion = resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.KafkaVersion
+		}
+		if resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.ConfigurationArn != nil &&
+			resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.ConfigurationRevision != nil {
+			ko.Spec.Provisioned.ConfigurationInfo = &svcapitypes.ConfigurationInfo{
+				ARN:      resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.ConfigurationArn,
+				Revision: resp.ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.ConfigurationRevision,
+			}
 		}
 	}
 	if !serverlessClusterActive(&resource{ko}) {

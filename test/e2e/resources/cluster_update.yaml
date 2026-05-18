@@ -1,0 +1,16 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  name: $CLUSTER_NAME
+  brokerNodeGroupInfo:
+    instanceType: "kafka.t3.small"
+    clientSubnets:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+    storageInfo:
+      ebsStorageInfo:
+        volumeSize: 10
+  kafkaVersion: "3.9.x"
+  numberOfBrokerNodes: 2

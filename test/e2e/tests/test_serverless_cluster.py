@@ -31,6 +31,7 @@ from e2e import serverlesscluster
 CREATE_WAIT_AFTER_SECONDS = 180
 DELETE_WAIT_SECONDS = 300
 MODIFY_WAIT_AFTER_SECONDS = 10
+LONG_UPDATE_WAIT = 600
 CHECK_STATUS_WAIT_SECONDS = 60
 EXPRESS_WAIT_TIMEOUT_SECONDS = 60 * 60
 
@@ -209,7 +210,7 @@ class TestServerlessCluster:
 
         latest_cluster = serverlesscluster.get_by_arn(cluster_arn)
         assert latest_cluster is not None
-        
+
         cr = k8s.get_resource(ref)
 
         latest_volume = latest_cluster['Provisioned']['BrokerNodeGroupInfo']["StorageInfo"]["EbsStorageInfo"]["VolumeSize"]
@@ -257,7 +258,6 @@ class TestServerlessCluster:
             actual=latest_tags,
         )
 
-        
     def test_serverless_crud(self, simple_provisioned_cluster):
         ref, _ = simple_provisioned_cluster
 
@@ -310,10 +310,6 @@ class TestServerlessCluster:
             expected=desired_tags,
             actual=latest_tags,
         )
-
-        
-
-LONG_UPDATE_WAIT = 600
 
 
 @pytest.fixture(scope="module")
