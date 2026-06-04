@@ -31,7 +31,11 @@ from e2e import serverlesscluster
 CREATE_WAIT_AFTER_SECONDS = 180
 DELETE_WAIT_SECONDS = 300
 MODIFY_WAIT_AFTER_SECONDS = 10
+LONG_UPDATE_WAIT = 600
 CHECK_STATUS_WAIT_SECONDS = 60
+POLL_INTERVAL_SECONDS = 30
+ASYNC_UPDATE_WAIT = 60 * 5
+LONG_ASYNC_UPDATE_WAIT = 60 * 40
 EXPRESS_WAIT_TIMEOUT_SECONDS = 60 * 60
 
 @pytest.fixture(scope="module")
@@ -209,7 +213,7 @@ class TestServerlessCluster:
 
         latest_cluster = serverlesscluster.get_by_arn(cluster_arn)
         assert latest_cluster is not None
-        
+
         cr = k8s.get_resource(ref)
 
         latest_volume = latest_cluster['Provisioned']['BrokerNodeGroupInfo']["StorageInfo"]["EbsStorageInfo"]["VolumeSize"]
@@ -257,7 +261,6 @@ class TestServerlessCluster:
             actual=latest_tags,
         )
 
-        
     def test_serverless_crud(self, simple_provisioned_cluster):
         ref, _ = simple_provisioned_cluster
 
@@ -311,9 +314,193 @@ class TestServerlessCluster:
             actual=latest_tags,
         )
 
-        
 
-LONG_UPDATE_WAIT = 600
+@pytest.fixture(scope="module")
+def update_provisioned_cluster():
+    cluster_name = random_suffix_name("ack-prov-upd", 24)
+
+    resources = get_bootstrap_resources()
+    vpc = resources.ClusterVPC
+    subnet_id_1 = vpc.public_subnets.subnet_ids[0]
+    subnet_id_2 = vpc.public_subnets.subnet_ids[1]
+
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["PROVISIONED_CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_id_1
+    replacements["SUBNET_ID_2"] = subnet_id_2
+
+    resource_data = load_resource(
+        "provisioned_serverlesscluster_update",
+        additional_replacements=replacements,
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        SERVERLESSCLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+
+    yield (ref, cr)
+
+    _, deleted = k8s.delete_custom_resource(
+        ref,
+        period_length=DELETE_WAIT_SECONDS,
+    )
+    assert deleted
+    serverlesscluster.wait_until_deleted(cluster_name)
+
+
+@service_marker
+@pytest.mark.canary
+class TestServerlessClusterUpdate:
+    def test_update_monitoring(self, update_provisioned_cluster):
+        ref, _ = update_provisioned_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        cr = k8s.get_resource(ref)
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+        )
+
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
+        resources = get_bootstrap_resources()
+        bucket_name = resources.LogBucket.name
+
+        updates = {
+            "spec": {
+                "provisioned": {
+                    "enhancedMonitoring": "PER_BROKER",
+                    "loggingInfo": {
+                        "brokerLogs": {
+                            "s3": {
+                                "enabled": True,
+                                "bucket": bucket_name,
+                                "prefix": "msk-logs",
+                            },
+                        },
+                    },
+                },
+            },
+        }
+        k8s.patch_custom_resource(ref, updates)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "False",
+            wait_periods=ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            period_length=POLL_INTERVAL_SECONDS,
+        )
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            period_length=POLL_INTERVAL_SECONDS,
+        )
+
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+        )
+
+        aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
+        assert aws_cluster is not None
+        assert aws_cluster["Provisioned"]["EnhancedMonitoring"] == "PER_BROKER"
+        assert aws_cluster["Provisioned"]["LoggingInfo"]["BrokerLogs"]["S3"]["Enabled"] is True
+        assert aws_cluster["Provisioned"]["LoggingInfo"]["BrokerLogs"]["S3"]["Bucket"] == bucket_name
+
+        cr = k8s.get_resource(ref)
+        assert cr["spec"]["provisioned"]["enhancedMonitoring"] == "PER_BROKER"
+        assert cr["spec"]["provisioned"]["loggingInfo"]["brokerLogs"]["s3"]["enabled"] is True
+        assert cr["spec"]["provisioned"]["loggingInfo"]["brokerLogs"]["s3"]["bucket"] == bucket_name
+
+    def test_update_cluster_configuration(self, update_provisioned_cluster, kafka_client):
+        ref, _ = update_provisioned_cluster
+
+        cr = k8s.get_resource(ref)
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+        )
+
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
+        config_resp = kafka_client.create_configuration(
+            Name=random_suffix_name("ack-e2e-config", 24),
+            KafkaVersions=[cr["spec"]["provisioned"]["kafkaVersion"]],
+            ServerProperties=b"auto.create.topics.enable = true\n",
+        )
+        config_arn = config_resp["Arn"]
+        config_revision = config_resp["LatestRevision"]["Revision"]
+
+        try:
+            updates = {
+                "spec": {
+                    "provisioned": {
+                        "configurationInfo": {
+                            "arn": config_arn,
+                            "revision": config_revision,
+                        },
+                    },
+                },
+            }
+            k8s.patch_custom_resource(ref, updates)
+
+            assert k8s.wait_on_condition(
+                ref,
+                "ACK.ResourceSynced",
+                "False",
+                wait_periods=ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+                period_length=POLL_INTERVAL_SECONDS,
+            )
+
+            assert k8s.wait_on_condition(
+                ref,
+                "ACK.ResourceSynced",
+                "True",
+                wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+                period_length=POLL_INTERVAL_SECONDS,
+            )
+
+            serverlesscluster.wait_until(
+                cluster_arn,
+                serverlesscluster.state_matches("ACTIVE"),
+            )
+
+            aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
+            assert aws_cluster is not None
+            assert aws_cluster["Provisioned"]["CurrentBrokerSoftwareInfo"]["ConfigurationArn"] == config_arn
+            assert aws_cluster["Provisioned"]["CurrentBrokerSoftwareInfo"]["ConfigurationRevision"] == config_revision
+
+            cr = k8s.get_resource(ref)
+            assert cr["spec"]["provisioned"]["configurationInfo"]["arn"] == config_arn
+            assert cr["spec"]["provisioned"]["configurationInfo"]["revision"] == config_revision
+        finally:
+            try:
+                kafka_client.delete_configuration(Arn=config_arn)
+            except Exception:
+                pass
 
 
 @pytest.fixture(scope="module")

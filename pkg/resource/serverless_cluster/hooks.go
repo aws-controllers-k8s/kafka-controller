@@ -197,6 +197,17 @@ func (rm *resourceManager) customUpdate(
 
 	case delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType"):
 		return rm.updateConnectivity(ctx, updatedRes, latest)
+
+	case delta.DifferentAt("Spec.Provisioned.KafkaVersion"):
+		return rm.updateKafkaVersion(ctx, updatedRes, latest)
+
+	case delta.DifferentAt("Spec.Provisioned.ConfigurationInfo"):
+		return rm.updateClusterConfiguration(ctx, updatedRes, latest)
+
+	case delta.DifferentAt("Spec.Provisioned.EnhancedMonitoring") ||
+		delta.DifferentAt("Spec.Provisioned.LoggingInfo") ||
+		delta.DifferentAt("Spec.Provisioned.OpenMonitoring"):
+		return rm.updateMonitoring(ctx, updatedRes, latest)
 	}
 
 	return updatedRes, nil
@@ -349,6 +360,146 @@ func (rm *resourceManager) updateRebalancing(
 	return desired, requeueAfterAsyncUpdate()
 }
 
+// updateClusterConfiguration updates the cluster configuration
+// (ARN and revision) for the kafka cluster
+func (rm *resourceManager) updateClusterConfiguration(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateClusterConfiguration")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateClusterConfigurationInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.Provisioned != nil && desired.ko.Spec.Provisioned.ConfigurationInfo != nil {
+		input.ConfigurationInfo = &svcsdktypes.ConfigurationInfo{
+			Arn:      desired.ko.Spec.Provisioned.ConfigurationInfo.ARN,
+			Revision: desired.ko.Spec.Provisioned.ConfigurationInfo.Revision,
+		}
+	}
+	_, err = rm.sdkapi.UpdateClusterConfiguration(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateClusterConfiguration", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating cluster configuration"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateKafkaVersion updates the Apache Kafka version
+// for the kafka cluster
+func (rm *resourceManager) updateKafkaVersion(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateKafkaVersion")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateClusterKafkaVersionInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.Provisioned != nil {
+		input.TargetKafkaVersion = desired.ko.Spec.Provisioned.KafkaVersion
+		if desired.ko.Spec.Provisioned.ConfigurationInfo != nil {
+			input.ConfigurationInfo = &svcsdktypes.ConfigurationInfo{
+				Arn:      desired.ko.Spec.Provisioned.ConfigurationInfo.ARN,
+				Revision: desired.ko.Spec.Provisioned.ConfigurationInfo.Revision,
+			}
+		}
+	}
+	_, err = rm.sdkapi.UpdateClusterKafkaVersion(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateClusterKafkaVersion", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating kafka version"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateMonitoring updates the monitoring settings for the kafka cluster,
+// including enhanced monitoring level, logging info, and open monitoring
+func (rm *resourceManager) updateMonitoring(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateMonitoring")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateMonitoringInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.Provisioned != nil {
+		if desired.ko.Spec.Provisioned.EnhancedMonitoring != nil {
+			input.EnhancedMonitoring = svcsdktypes.EnhancedMonitoring(*desired.ko.Spec.Provisioned.EnhancedMonitoring)
+		}
+		if desired.ko.Spec.Provisioned.LoggingInfo != nil {
+			li := &svcsdktypes.LoggingInfo{}
+			if desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
+				bl := &svcsdktypes.BrokerLogs{}
+				if desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
+					bl.CloudWatchLogs = &svcsdktypes.CloudWatchLogs{
+						Enabled:  desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled,
+						LogGroup: desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup,
+					}
+				}
+				if desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose != nil {
+					bl.Firehose = &svcsdktypes.Firehose{
+						Enabled:        desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled,
+						DeliveryStream: desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream,
+					}
+				}
+				if desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 != nil {
+					bl.S3 = &svcsdktypes.S3{
+						Enabled: desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled,
+						Bucket:  desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket,
+						Prefix:  desired.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix,
+					}
+				}
+				li.BrokerLogs = bl
+			}
+			input.LoggingInfo = li
+		}
+		if desired.ko.Spec.Provisioned.OpenMonitoring != nil {
+			om := &svcsdktypes.OpenMonitoringInfo{}
+			if desired.ko.Spec.Provisioned.OpenMonitoring.Prometheus != nil {
+				p := &svcsdktypes.PrometheusInfo{}
+				if desired.ko.Spec.Provisioned.OpenMonitoring.Prometheus.JmxExporter != nil {
+					p.JmxExporter = &svcsdktypes.JmxExporterInfo{
+						EnabledInBroker: desired.ko.Spec.Provisioned.OpenMonitoring.Prometheus.JmxExporter.EnabledInBroker,
+					}
+				}
+				if desired.ko.Spec.Provisioned.OpenMonitoring.Prometheus.NodeExporter != nil {
+					p.NodeExporter = &svcsdktypes.NodeExporterInfo{
+						EnabledInBroker: desired.ko.Spec.Provisioned.OpenMonitoring.Prometheus.NodeExporter.EnabledInBroker,
+					}
+				}
+				om.Prometheus = p
+			}
+			input.OpenMonitoring = om
+		}
+	}
+	_, err = rm.sdkapi.UpdateMonitoring(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateMonitoring", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating monitoring"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
 // updateBrokerStorate updates the volumeSize of the
 // kafka cluster broker storage
 func (rm *resourceManager) updateBrokerStorage(
@@ -455,6 +606,7 @@ func (rm *resourceManager) updateClientAuthentication(
 			}
 			f0.Sasl = f0f0
 		}
+		input.ClientAuthentication = f0
 	}
 
 	_, err = rm.sdkapi.UpdateSecurity(ctx, input)
@@ -700,6 +852,61 @@ func (rm *resourceManager) newDeleteRequestPayload(
 	}
 
 	return res, nil
+}
+
+func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
+	if a.ko.Spec.Provisioned != nil && b.ko.Spec.Provisioned != nil {
+		// MSK's DescribeCluster API returns LoggingInfo as nil when all broker
+		// logging is disabled, rather than a struct with enabled:false for each
+		// target. See: https://docs.aws.amazon.com/msk/1.0/apireference/clusters-clusterarn.html
+		// (loggingInfo is Required:False in the ClusterInfo response model).
+		// If the user's desired state has all logging disabled, it is semantically
+		// equal to the nil returned by AWS. Normalize desired to nil to suppress a
+		// spurious diff that would trigger a no-op UpdateMonitoring call on every
+		// reconcile.
+		if a.ko.Spec.Provisioned.LoggingInfo == nil {
+			a.ko.Spec.Provisioned.LoggingInfo = b.ko.Spec.Provisioned.LoggingInfo
+		} else if b.ko.Spec.Provisioned.LoggingInfo == nil && loggingDisabled(a.ko.Spec.Provisioned.LoggingInfo) {
+			a.ko.Spec.Provisioned.LoggingInfo = nil
+		} else if a.ko.Spec.Provisioned.LoggingInfo != nil && b.ko.Spec.Provisioned.LoggingInfo != nil &&
+			a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil && b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
+			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs == nil {
+				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs
+			}
+			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose == nil {
+				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose
+			}
+			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 == nil {
+				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3
+			}
+		}
+		if a.ko.Spec.Provisioned.ConfigurationInfo == nil {
+			a.ko.Spec.Provisioned.ConfigurationInfo = b.ko.Spec.Provisioned.ConfigurationInfo
+		}
+		if a.ko.Spec.Provisioned.EnhancedMonitoring == nil {
+			a.ko.Spec.Provisioned.EnhancedMonitoring = b.ko.Spec.Provisioned.EnhancedMonitoring
+		}
+		if a.ko.Spec.Provisioned.OpenMonitoring == nil {
+			a.ko.Spec.Provisioned.OpenMonitoring = b.ko.Spec.Provisioned.OpenMonitoring
+		}
+	}
+}
+
+func loggingDisabled(li *svcapitypes.LoggingInfo) bool {
+	if li == nil || li.BrokerLogs == nil {
+		return true
+	}
+	bl := li.BrokerLogs
+	if bl.CloudWatchLogs != nil && aws.ToBool(bl.CloudWatchLogs.Enabled) {
+		return false
+	}
+	if bl.Firehose != nil && aws.ToBool(bl.Firehose.Enabled) {
+		return false
+	}
+	if bl.S3 != nil && aws.ToBool(bl.S3.Enabled) {
+		return false
+	}
+	return true
 }
 
 func int32OrNil(num *int64) *int32 {

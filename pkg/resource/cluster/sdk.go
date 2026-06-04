@@ -341,8 +341,19 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
-	if resp.ClusterInfo.CurrentBrokerSoftwareInfo != nil && resp.ClusterInfo.CurrentBrokerSoftwareInfo.KafkaVersion != nil {
-		ko.Spec.KafkaVersion = resp.ClusterInfo.CurrentBrokerSoftwareInfo.KafkaVersion
+	if resp.ClusterInfo.CurrentBrokerSoftwareInfo != nil {
+		if resp.ClusterInfo.CurrentBrokerSoftwareInfo.KafkaVersion != nil {
+			ko.Spec.KafkaVersion = resp.ClusterInfo.CurrentBrokerSoftwareInfo.KafkaVersion
+		}
+		if resp.ClusterInfo.CurrentBrokerSoftwareInfo.ConfigurationArn != nil &&
+			resp.ClusterInfo.CurrentBrokerSoftwareInfo.ConfigurationRevision != nil {
+			ko.Spec.ConfigurationInfo = &svcapitypes.ConfigurationInfo{
+				ARN:      resp.ClusterInfo.CurrentBrokerSoftwareInfo.ConfigurationArn,
+				Revision: resp.ClusterInfo.CurrentBrokerSoftwareInfo.ConfigurationRevision,
+			}
+		} else {
+			ko.Spec.ConfigurationInfo = nil
+		}
 	}
 	if resp.ClusterInfo.CurrentVersion != nil {
 		ko.Status.CurrentVersion = resp.ClusterInfo.CurrentVersion

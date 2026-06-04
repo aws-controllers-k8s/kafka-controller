@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from acktest.bootstrapping import Resources
 from acktest.bootstrapping.vpc import VPC
 from acktest.bootstrapping.secretsmanager import Secret
+from acktest.bootstrapping.s3 import Bucket
 from e2e import bootstrap_directory
 
 
@@ -27,6 +28,7 @@ class BootstrapResources(Resources):
     ClusterVPC: VPC
     SCRAMSecret1: Secret
     SCRAMSecret2: Secret
+    LogBucket: Bucket
 
 
 _bootstrap_resources = None
