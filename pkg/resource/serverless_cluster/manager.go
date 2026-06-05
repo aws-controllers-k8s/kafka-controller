@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{"Provisioned.BrokerNodeGroupInfo", "Provisioned.BrokerNodeGroupInfo.BrokerAZDistribution", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess", "Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type", "Provisioned.BrokerNodeGroupInfo.SecurityGroups", "Provisioned.BrokerNodeGroupInfo.StorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo", "Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize", "Provisioned.ClientAuthentication", "Provisioned.EncryptionInfo", "Provisioned.EnhancedMonitoring", "Provisioned.OpenMonitoring", "Provisioned.Rebalancing", "Provisioned.StorageMode"}
+var lateInitializeFieldNames = []string{"BrokerNodeGroupInfo", "BrokerAZDistribution", "ConnectivityInfo", "PublicAccess", "Type", "SecurityGroups", "StorageInfo", "EBSStorageInfo", "VolumeSize", "ClientAuthentication", "EncryptionInfo", "EnhancedMonitoring", "OpenMonitoring", "Rebalancing", "StorageMode"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
