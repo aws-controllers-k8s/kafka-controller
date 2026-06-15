@@ -73,6 +73,11 @@ resources:
           service_name: ec2
           resource: Subnet
           path: Status.SubnetID
+      BrokerNodeGroupInfo.SecurityGroups:
+        references:
+          service_name: ec2
+          resource: SecurityGroup
+          path: Status.ID
       BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
         go_tag: json:"type,omitempty"
       ZookeeperConnectString:
