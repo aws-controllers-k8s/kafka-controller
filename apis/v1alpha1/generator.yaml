@@ -173,6 +173,10 @@ resources:
         late_initialize:
           skip_incomplete_check: {}
       Provisioned.BrokerNodeGroupInfo.SecurityGroups:
+        references:
+          service_name: ec2
+          resource: SecurityGroup
+          path: Status.ID
         late_initialize:
           skip_incomplete_check: {}
       Provisioned.BrokerNodeGroupInfo.StorageInfo:
