@@ -577,6 +577,15 @@ func (rm *resourceManager) syncAssociatedScramSecrets(
 	rlog := ackrtlog.FromContext(ctx)
 	exit := rlog.Trace("rm.syncAssociatedScramSecrets")
 	defer func() { exit(err) }()
+
+	// When the spec omits AssociatedSCRAMSecrets (nil), treat the field as
+	// unmanaged so secrets associated out-of-band are not disassociated.
+	// A empty list can specified in the CR, means the user wants no associated
+	// secrets and any existing associations should be removed.
+	if desired.ko.Spec.AssociatedSCRAMSecrets == nil {
+		return nil
+	}
+
 	toAdd := []*string{}
 	toDelete := []*string{}
 
@@ -789,6 +798,12 @@ func (rm *resourceManager) setBootstrapBrokerStringInformations(ctx context.Cont
 }
 
 func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
+	// When the spec omits AssociatedSCRAMSecrets, treat the field as
+	// unmanaged: copy observed onto desired so the delta sees them as equal
+	// and externally associated secrets are never disassociated.
+	if a.ko.Spec.AssociatedSCRAMSecrets == nil {
+		a.ko.Spec.AssociatedSCRAMSecrets = b.ko.Spec.AssociatedSCRAMSecrets
+	}
 	// Set MSK defaults
 	if a.ko.Spec.BrokerNodeGroupInfo == nil {
 		a.ko.Spec.BrokerNodeGroupInfo = b.ko.Spec.BrokerNodeGroupInfo
