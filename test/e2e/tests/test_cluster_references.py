@@ -263,6 +263,18 @@ def cluster_using_managed_sg(referenced_security_group):
     cluster.wait_until_deleted(cluster_name)
 
 
+# TODO(aws-controllers-k8s/community#2752): this positive securityGroupRefs
+# e2e test has NOT yet been verified end-to-end against a live MSK cluster
+# (cluster creation + verifying the ACK-managed security group is attached).
+# It is skipped so we do not land an unverified test that runs in CI. To
+# re-enable: install the ec2-controller in the test cluster (add
+# 'ec2-controller@<version>' to cluster.configuration.additional_controllers
+# in test_config.yaml), run this test successfully, then remove the skip below.
+@pytest.mark.skip(
+    reason="TODO(community#2752): positive securityGroupRefs e2e test not yet "
+    "verified end-to-end against live MSK; re-enable after a successful run "
+    "(see TODO comment above)."
+)
 @service_marker
 @pytest.mark.canary
 class TestClusterUsingManagedSecurityGroup:
