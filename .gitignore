@@ -6,3 +6,4 @@ bin
 build
 .env
 READ_BEFORE_COMMIT.md
+test/e2e/.venv/

@@ -1,0 +1,8 @@
+apiVersion: ec2.services.k8s.aws/v1alpha1
+kind: SecurityGroup
+metadata:
+  name: $SECURITY_GROUP_NAME
+spec:
+  name: $SECURITY_GROUP_NAME
+  description: "ACK e2e test security group for MSK securityGroupRefs"
+  vpcID: $VPC_ID
