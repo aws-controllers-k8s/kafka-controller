@@ -174,6 +174,18 @@ func (rm *resourceManager) customUpdate(
 	case delta.DifferentAt("Spec.ClientAuthentication"):
 		return rm.updateClientAuthentication(ctx, updatedRes, latest)
 	case delta.DifferentAt("Spec.AssociatedSCRAMSecrets"):
+		// Defense in depth: when the SCRAM secret associations are managed
+		// externally we must never associate or disassociate any secret. The
+		// customPreCompare merge should already prevent a SCRAM delta from
+		// being produced, but we guard here as well in case any path still
+		// observes a difference at this field.
+		if isSCRAMSecretsManagedExternally(desired.ko) {
+			rlog.Debug(
+				"ignoring difference in associatedSCRAMSecrets as it is managed by an external entity",
+				"annotation", svcapitypes.AssociatedSCRAMSecretsManagedByAnnotation,
+			)
+			return updatedRes, nil
+		}
 		err = rm.syncAssociatedScramSecrets(ctx, updatedRes, latest)
 		if err != nil {
 			return latest, err
@@ -788,7 +800,45 @@ func (rm *resourceManager) setBootstrapBrokerStringInformations(ctx context.Cont
 	return nil
 }
 
+// getAssociatedSCRAMSecretsManagedByAnnotation returns the value of the
+// AssociatedSCRAMSecretsManagedByAnnotation annotation on the supplied Cluster,
+// along with a boolean indicating whether the annotation is set.
+func getAssociatedSCRAMSecretsManagedByAnnotation(cluster *svcapitypes.Cluster) (string, bool) {
+	if cluster == nil || len(cluster.Annotations) == 0 {
+		return "", false
+	}
+	managedBy, ok := cluster.Annotations[svcapitypes.AssociatedSCRAMSecretsManagedByAnnotation]
+	return managedBy, ok
+}
+
+// isSCRAMSecretsManagedExternally returns true only when the
+// AssociatedSCRAMSecretsManagedByAnnotation annotation is set to the external
+// value, indicating that the controller must fully ignore the
+// spec.associatedSCRAMSecrets field (it neither associates nor disassociates
+// any SCRAM secret).
+func isSCRAMSecretsManagedExternally(cluster *svcapitypes.Cluster) bool {
+	managedBy, ok := getAssociatedSCRAMSecretsManagedByAnnotation(cluster)
+	if !ok {
+		return false
+	}
+	return managedBy == svcapitypes.AssociatedSCRAMSecretsManagedByExternal
+}
+
 func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
+	// When the SCRAM secret associations are managed by an external entity, the
+	// controller must completely ignore the spec.associatedSCRAMSecrets field:
+	// it should neither associate nor disassociate any SCRAM secret.
+	//
+	// customPreCompare runs BEFORE the generated delta comparison populates the
+	// delta, so we cannot strip a difference from the delta here (as the EKS
+	// controller does in its post-compare hook). Instead we merge: copy the
+	// latest (observed) SCRAM secrets into the desired resource so the generated
+	// comparison produces no associatedSCRAMSecrets difference. This achieves the
+	// identical "full ignore" semantics without regenerating delta.go.
+	if a != nil && b != nil && isSCRAMSecretsManagedExternally(a.ko) {
+		a.ko.Spec.AssociatedSCRAMSecrets = b.ko.Spec.AssociatedSCRAMSecrets
+	}
+
 	// Set MSK defaults
 	if a.ko.Spec.BrokerNodeGroupInfo == nil {
 		a.ko.Spec.BrokerNodeGroupInfo = b.ko.Spec.BrokerNodeGroupInfo

@@ -416,6 +416,161 @@ class TestClusterUpdate:
 
 
 @pytest.fixture(scope="module")
+def scram_external_cluster():
+    cluster_name = random_suffix_name("ack-scram-ext", 24)
+
+    resources = get_bootstrap_resources()
+    vpc = resources.ClusterVPC
+    subnet_id_1 = vpc.public_subnets.subnet_ids[0]
+    subnet_id_2 = vpc.public_subnets.subnet_ids[1]
+    global scram_ext_secret_1, scram_ext_secret_2
+    scram_ext_secret_1 = resources.SCRAMSecret1.arn
+    scram_ext_secret_2 = resources.SCRAMSecret2.arn
+
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_id_1
+    replacements["SUBNET_ID_2"] = subnet_id_2
+    # The spec lists secret_1, but because the cluster is annotated as
+    # externally-managed the controller must NOT associate it.
+    replacements["SECRET_ARN"] = scram_ext_secret_1
+
+    resource_data = load_resource(
+        "cluster_scram_external",
+        additional_replacements=replacements,
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        CLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+
+    yield (ref, cr)
+
+    _, deleted = k8s.delete_custom_resource(
+        ref,
+        period_length=DELETE_WAIT_SECONDS,
+    )
+    assert deleted
+    cluster.wait_until_deleted(cluster_name)
+
+
+@service_marker
+@pytest.mark.canary
+class TestClusterSCRAMExternallyManaged:
+    """Verifies that when a Cluster is annotated with
+    kafka.services.k8s.aws/scram-secrets-managed-by: external the controller
+    fully ignores the spec.associatedSCRAMSecrets field: it neither associates
+    nor disassociates any SCRAM secret.
+    """
+
+    def test_scram_secrets_fully_ignored(self, scram_external_cluster, kafka_client):
+        ref, _ = scram_external_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        cr = k8s.get_resource(ref)
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        # Despite the spec listing secret_1, the controller must NOT have
+        # associated it because the resource is externally managed.
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
+        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        assert len(latest_secrets) == 0, (
+            "controller associated a SCRAM secret despite the external "
+            "management annotation"
+        )
+
+        # Associate a secret OUT OF BAND (directly via the kafka API), as a
+        # customer managing associations externally would.
+        kafka_client.batch_associate_scram_secret(
+            ClusterArn=cluster_arn,
+            SecretArnList=[scram_ext_secret_2],
+        )
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        # Wait through at least one reconcile loop and confirm the controller
+        # did NOT disassociate the out-of-band secret.
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        assert scram_ext_secret_2 in latest_secrets, (
+            "controller disassociated an externally-managed SCRAM secret"
+        )
+        assert len(latest_secrets) == 1
+
+        # The cluster must remain Synced=True even though spec
+        # (associatedSCRAMSecrets=[secret_1]) differs from the actual AWS
+        # association (secret_2).
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
+
+        # Patch spec.associatedSCRAMSecrets to a completely different set and
+        # verify the controller still does NOT change the actual associations.
+        updates = {
+            "spec": {
+                "associatedSCRAMSecrets": [scram_ext_secret_1],
+            },
+        }
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        # Actual AWS associations are unchanged: still only the out-of-band
+        # secret_2, never secret_1 from the spec.
+        latest_secrets = cluster.get_associated_scram_secrets(cluster_arn)
+        assert scram_ext_secret_2 in latest_secrets
+        assert scram_ext_secret_1 not in latest_secrets
+        assert len(latest_secrets) == 1
+
+        # Clean up the out-of-band association so the cluster can be deleted
+        # cleanly by the fixture teardown.
+        kafka_client.batch_disassociate_scram_secret(
+            ClusterArn=cluster_arn,
+            SecretArnList=[scram_ext_secret_2],
+        )
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+
+@pytest.fixture(scope="module")
 def express_cluster():
     cluster_name = random_suffix_name("ack-express", 24)
 
