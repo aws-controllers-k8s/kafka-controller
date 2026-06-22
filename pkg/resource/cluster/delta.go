@@ -401,5 +401,6 @@ func newResourceDelta(
 		delta.Add("Spec.Tags", a.ko.Spec.Tags, b.ko.Spec.Tags)
 	}
 
+	customPostCompare(delta, a, b)
 	return delta
 }

@@ -175,10 +175,10 @@ func (rm *resourceManager) customUpdate(
 		return rm.updateClientAuthentication(ctx, updatedRes, latest)
 	case delta.DifferentAt("Spec.AssociatedSCRAMSecrets"):
 		// Defense in depth: when the SCRAM secret associations are managed
-		// externally we must never associate or disassociate any secret. The
-		// customPreCompare merge should already prevent a SCRAM delta from
-		// being produced, but we guard here as well in case any path still
-		// observes a difference at this field.
+		// externally we must never associate or disassociate any secret.
+		// customPostCompare already strips Spec.AssociatedSCRAMSecrets from the
+		// delta in that case, so this branch should not be reached, but we
+		// guard here as well in case any path still observes a difference.
 		if isSCRAMSecretsManagedExternally(desired.ko) {
 			rlog.Debug(
 				"ignoring difference in associatedSCRAMSecrets as it is managed by an external entity",
@@ -825,20 +825,6 @@ func isSCRAMSecretsManagedExternally(cluster *svcapitypes.Cluster) bool {
 }
 
 func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
-	// When the SCRAM secret associations are managed by an external entity, the
-	// controller must completely ignore the spec.associatedSCRAMSecrets field:
-	// it should neither associate nor disassociate any SCRAM secret.
-	//
-	// customPreCompare runs BEFORE the generated delta comparison populates the
-	// delta, so we cannot strip a difference from the delta here (as the EKS
-	// controller does in its post-compare hook). Instead we merge: copy the
-	// latest (observed) SCRAM secrets into the desired resource so the generated
-	// comparison produces no associatedSCRAMSecrets difference. This achieves the
-	// identical "full ignore" semantics without regenerating delta.go.
-	if a != nil && b != nil && isSCRAMSecretsManagedExternally(a.ko) {
-		a.ko.Spec.AssociatedSCRAMSecrets = b.ko.Spec.AssociatedSCRAMSecrets
-	}
-
 	// Set MSK defaults
 	if a.ko.Spec.BrokerNodeGroupInfo == nil {
 		a.ko.Spec.BrokerNodeGroupInfo = b.ko.Spec.BrokerNodeGroupInfo
@@ -916,6 +902,30 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	if a.ko.Spec.Rebalancing == nil && b.ko.Spec.Rebalancing != nil {
 		a.ko.Spec.Rebalancing = b.ko.Spec.Rebalancing
 	}
+}
+
+// customPostCompare runs after the generated delta comparison. When the SCRAM
+// secret associations are managed by an external entity, the controller must
+// completely ignore the spec.associatedSCRAMSecrets field: it should neither
+// associate nor disassociate any SCRAM secret. We remove any
+// Spec.AssociatedSCRAMSecrets difference from the delta here (rather than
+// mutating the desired spec in customPreCompare), so that the observed AWS
+// value is never written back to the desired resource and therefore never
+// persisted to the Kubernetes API server when an unrelated field is updated.
+func customPostCompare(delta *ackcompare.Delta, a, b *resource) {
+	if a == nil || !isSCRAMSecretsManagedExternally(a.ko) {
+		return
+	}
+	if !delta.DifferentAt("Spec.AssociatedSCRAMSecrets") {
+		return
+	}
+	newDiffs := make([]*ackcompare.Difference, 0, len(delta.Differences))
+	for _, d := range delta.Differences {
+		if !d.Path.Contains("Spec.AssociatedSCRAMSecrets") {
+			newDiffs = append(newDiffs, d)
+		}
+	}
+	delta.Differences = newDiffs
 }
 
 func loggingDisabled(li *svcapitypes.LoggingInfo) bool {

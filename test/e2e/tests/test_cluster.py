@@ -558,16 +558,13 @@ class TestClusterSCRAMExternallyManaged:
         assert scram_ext_secret_1 not in latest_secrets
         assert len(latest_secrets) == 1
 
-        # Clean up the out-of-band association so the cluster can be deleted
-        # cleanly by the fixture teardown.
-        kafka_client.batch_disassociate_scram_secret(
-            ClusterArn=cluster_arn,
-            SecretArnList=[scram_ext_secret_2],
-        )
-        cluster.wait_until(
-            cluster_arn,
-            cluster.state_matches("ACTIVE"),
-        )
+        # Intentionally leave the externally-associated secret attached. The
+        # fixture teardown deletes the Cluster CR while secret_2 is still
+        # associated; because the cluster is externally managed, the controller
+        # must NOT disassociate it during the pre-delete flow and must still
+        # delete the cluster cleanly (MSK disassociates SCRAM secrets as part of
+        # cluster deletion). The fixture asserts the cluster is deleted, which
+        # verifies the delete path is not blocked by the external annotation.
 
 
 @pytest.fixture(scope="module")
