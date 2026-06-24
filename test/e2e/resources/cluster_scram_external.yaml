@@ -1,0 +1,28 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $CLUSTER_NAME
+  annotations:
+    kafka.services.k8s.aws/scram-secrets-managed-by: external
+spec:
+  name: $CLUSTER_NAME
+  clientAuthentication:
+    sasl:
+      scram:
+        enabled: true
+  # NOTE: associatedSCRAMSecrets is intentionally populated with a secret that
+  # the controller must NOT associate, because the resource is annotated as
+  # having its SCRAM secret associations managed externally. The controller
+  # must fully ignore this field.
+  associatedSCRAMSecrets:
+    - $SECRET_ARN
+  brokerNodeGroupInfo:
+    instanceType: "kafka.t3.small"
+    clientSubnets:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+    storageInfo:
+      ebsStorageInfo:
+        volumeSize: 10
+  kafkaVersion: "3.9.x"
+  numberOfBrokerNodes: 2
