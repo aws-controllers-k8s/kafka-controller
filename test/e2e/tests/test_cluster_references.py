@@ -132,22 +132,23 @@ class TestClusterSecurityGroupRef:
 # securityGroupRefs, and the resulting MSK cluster is actually created using
 # that security group.
 #
-# This requires the ec2-controller (and its SecurityGroup CRD) to be running in
-# the test cluster. Add it to test_config.yaml under
-# cluster.configuration.additional_controllers, e.g.:
+# This REQUIRES the ec2-controller (and its SecurityGroup CRD) to be running in
+# the test cluster. It is installed by adding ec2-controller to the test
+# config's cluster.configuration.additional_controllers, e.g.:
 #
 #   cluster:
 #     configuration:
 #       additional_controllers:
 #       - ec2-controller@v1.13.1
 #
-# If the CRD is not present the test is skipped rather than failed.
+# The test is intentionally NOT skipped when the CRD is absent: if the
+# ec2-controller is not installed the SecurityGroup fixture will fail loudly so
+# the missing dependency is visible rather than silently hidden.
 # ---------------------------------------------------------------------------
 
 EC2_CRD_GROUP = "ec2.services.k8s.aws"
 EC2_CRD_VERSION = "v1alpha1"
 SECURITY_GROUP_RESOURCE_PLURAL = "securitygroups"
-SECURITY_GROUP_CRD_NAME = "securitygroups.ec2.services.k8s.aws"
 
 SG_SYNC_WAIT_PERIODS = 30
 SG_SYNC_PERIOD_LENGTH = 10
@@ -156,25 +157,8 @@ REFS_RESOLVED_WAIT_PERIODS = 18
 REFS_RESOLVED_PERIOD_LENGTH = 10
 
 
-def _require_ec2_securitygroup_crd():
-    """Skips the calling test unless the ec2 SecurityGroup CRD is installed."""
-    import kubernetes
-
-    api = kubernetes.client.ApiextensionsV1Api(k8s._get_k8s_api_client())
-    try:
-        api.read_custom_resource_definition(SECURITY_GROUP_CRD_NAME)
-    except Exception:
-        pytest.skip(
-            "ec2 SecurityGroup CRD not installed; install the ec2-controller "
-            "(add 'ec2-controller@<version>' to cluster.configuration."
-            "additional_controllers in test_config.yaml) to run this test."
-        )
-
-
 @pytest.fixture(scope="module")
 def referenced_security_group():
-    _require_ec2_securitygroup_crd()
-
     resources = get_bootstrap_resources()
     vpc_id = resources.ClusterVPC.vpc_id
 
@@ -263,18 +247,11 @@ def cluster_using_managed_sg(referenced_security_group):
     cluster.wait_until_deleted(cluster_name)
 
 
-# TODO(aws-controllers-k8s/community#2752): this positive securityGroupRefs
-# e2e test has NOT yet been verified end-to-end against a live MSK cluster
-# (cluster creation + verifying the ACK-managed security group is attached).
-# It is skipped so we do not land an unverified test that runs in CI. To
-# re-enable: install the ec2-controller in the test cluster (add
-# 'ec2-controller@<version>' to cluster.configuration.additional_controllers
-# in test_config.yaml), run this test successfully, then remove the skip below.
-@pytest.mark.skip(
-    reason="TODO(community#2752): positive securityGroupRefs e2e test not yet "
-    "verified end-to-end against live MSK; re-enable after a successful run "
-    "(see TODO comment above)."
-)
+# NOTE(aws-controllers-k8s/community#2752): this positive test creates a live
+# MSK cluster referencing an ACK-managed ec2 SecurityGroup and verifies the
+# resolved security group is attached. It REQUIRES the ec2-controller to be
+# installed in the test cluster (see the additional_controllers note above). It
+# is a canary test and runs as part of the suite (not skipped).
 @service_marker
 @pytest.mark.canary
 class TestClusterUsingManagedSecurityGroup:
