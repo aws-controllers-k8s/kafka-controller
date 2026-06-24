@@ -1,0 +1,33 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: ServerlessCluster
+metadata:
+  name: $PROVISIONED_CLUSTER_NAME
+spec:
+  name: $PROVISIONED_CLUSTER_NAME
+  associatedSCRAMSecrets:
+    - $SECRET_ARN
+  provisioned:
+    clientAuthentication:
+      sasl:
+        scram:
+          enabled: true
+    brokerNodeGroupInfo:
+      instanceType: "kafka.t3.small"
+      # NOTE: Clusters require at least 2 subnets.
+      clientSubnets:
+        - $SUBNET_ID_1
+        - $SUBNET_ID_2
+      # securityGroupRefs points at an ec2 SecurityGroup custom resource by
+      # name. The referenced SecurityGroup resolves to its Status.ID and is
+      # attached to the provisioned cluster's BrokerNodeGroupInfo.SecurityGroups.
+      # In the negative test the referenced SecurityGroup CR is intentionally
+      # never created, so the reference cannot be resolved and the controller
+      # must not create the MSK cluster.
+      securityGroupRefs:
+        - from:
+            name: $SECURITY_GROUP_REF_NAME
+      storageInfo:
+        ebsStorageInfo:
+          volumeSize: 10
+    kafkaVersion: "3.9.x"
+    numberOfBrokerNodes: 2

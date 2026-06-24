@@ -39,6 +39,9 @@ import (
 // +kubebuilder:rbac:groups=ec2.services.k8s.aws,resources=subnets,verbs=get;list
 // +kubebuilder:rbac:groups=ec2.services.k8s.aws,resources=subnets/status,verbs=get;list
 
+// +kubebuilder:rbac:groups=ec2.services.k8s.aws,resources=securitygroups,verbs=get;list
+// +kubebuilder:rbac:groups=ec2.services.k8s.aws,resources=securitygroups/status,verbs=get;list
+
 // ClearResolvedReferences removes any reference values that were made
 // concrete in the spec. It returns a copy of the input AWSResource which
 // contains the original *Ref values, but none of their respective concrete
@@ -54,6 +57,14 @@ func (rm *resourceManager) ClearResolvedReferences(res acktypes.AWSResource) ack
 		if ko.Spec.Provisioned.BrokerNodeGroupInfo != nil {
 			if len(ko.Spec.Provisioned.BrokerNodeGroupInfo.ClientSubnetRefs) > 0 {
 				ko.Spec.Provisioned.BrokerNodeGroupInfo.ClientSubnets = nil
+			}
+		}
+	}
+
+	if ko.Spec.Provisioned != nil {
+		if ko.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if len(ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs) > 0 {
+				ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups = nil
 			}
 		}
 	}
@@ -89,6 +100,12 @@ func (rm *resourceManager) ResolveReferences(
 		resourceHasReferences = resourceHasReferences || fieldHasReferences
 	}
 
+	if fieldHasReferences, err := rm.resolveReferenceForProvisioned_BrokerNodeGroupInfo_SecurityGroups(ctx, apiReader, ko); err != nil {
+		return &resource{ko}, (resourceHasReferences || fieldHasReferences), err
+	} else {
+		resourceHasReferences = resourceHasReferences || fieldHasReferences
+	}
+
 	return &resource{ko}, resourceHasReferences, err
 }
 
@@ -104,6 +121,14 @@ func validateReferenceFields(ko *svcapitypes.ServerlessCluster) error {
 		if ko.Spec.Provisioned.BrokerNodeGroupInfo != nil {
 			if len(ko.Spec.Provisioned.BrokerNodeGroupInfo.ClientSubnetRefs) > 0 && len(ko.Spec.Provisioned.BrokerNodeGroupInfo.ClientSubnets) > 0 {
 				return ackerr.ResourceReferenceAndIDNotSupportedFor("Provisioned.BrokerNodeGroupInfo.ClientSubnets", "Provisioned.BrokerNodeGroupInfo.ClientSubnetRefs")
+			}
+		}
+	}
+
+	if ko.Spec.Provisioned != nil {
+		if ko.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if len(ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs) > 0 && len(ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups) > 0 {
+				return ackerr.ResourceReferenceAndIDNotSupportedFor("Provisioned.BrokerNodeGroupInfo.SecurityGroups", "Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs")
 			}
 		}
 	}
@@ -302,6 +327,106 @@ func getReferencedResourceState_Subnet(
 			"Subnet",
 			namespace, name,
 			"Status.SubnetID")
+	}
+	return nil
+}
+
+// resolveReferenceForProvisioned_BrokerNodeGroupInfo_SecurityGroups reads the resource referenced
+// from Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs field and sets the Provisioned.BrokerNodeGroupInfo.SecurityGroups
+// from referenced resource. Returns a boolean indicating whether a reference
+// contains references, or an error
+func (rm *resourceManager) resolveReferenceForProvisioned_BrokerNodeGroupInfo_SecurityGroups(
+	ctx context.Context,
+	apiReader client.Reader,
+	ko *svcapitypes.ServerlessCluster,
+) (hasReferences bool, err error) {
+	if ko.Spec.Provisioned != nil {
+		if ko.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			for _, f0iter := range ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs {
+				if f0iter != nil && f0iter.From != nil {
+					hasReferences = true
+					arr := f0iter.From
+					if arr.Name == nil || *arr.Name == "" {
+						return hasReferences, fmt.Errorf("provided resource reference is nil or empty: Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs")
+					}
+					namespace, err := ackrt.ResolveCrossNamespaceReference(
+						ctx,
+						rm.cfg.EnableCrossNamespace,
+						&ko.Status.Conditions,
+						ackrt.CrossNamespaceRefKindResource,
+						ko.ObjectMeta.GetNamespace(),
+						arr.Namespace,
+						*arr.Name,
+					)
+					if err != nil {
+						return hasReferences, err
+					}
+					obj := &ec2apitypes.SecurityGroup{}
+					if err := getReferencedResourceState_SecurityGroup(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
+						return hasReferences, err
+					}
+					if ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups == nil {
+						ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups = make([]*string, 0, 1)
+					}
+					ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups = append(ko.Spec.Provisioned.BrokerNodeGroupInfo.SecurityGroups, (*string)(obj.Status.ID))
+				}
+			}
+		}
+	}
+
+	return hasReferences, nil
+}
+
+// getReferencedResourceState_SecurityGroup looks up whether a referenced resource
+// exists and is in a ACK.ResourceSynced=True state. If the referenced resource does exist and is
+// in a Synced state, returns nil, otherwise returns `ackerr.ResourceReferenceTerminalFor` or
+// `ResourceReferenceNotSyncedFor` depending on if the resource is in a Terminal state.
+func getReferencedResourceState_SecurityGroup(
+	ctx context.Context,
+	apiReader client.Reader,
+	obj *ec2apitypes.SecurityGroup,
+	name string, // the Kubernetes name of the referenced resource
+	namespace string, // the Kubernetes namespace of the referenced resource
+) error {
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := apiReader.Get(ctx, namespacedName, obj)
+	if err != nil {
+		return err
+	}
+	var refResourceTerminal bool
+	for _, cond := range obj.Status.Conditions {
+		if cond.Type == ackv1alpha1.ConditionTypeTerminal &&
+			cond.Status == corev1.ConditionTrue {
+			return ackerr.ResourceReferenceTerminalFor(
+				"SecurityGroup",
+				namespace, name)
+		}
+	}
+	if refResourceTerminal {
+		return ackerr.ResourceReferenceTerminalFor(
+			"SecurityGroup",
+			namespace, name)
+	}
+	var refResourceSynced bool
+	for _, cond := range obj.Status.Conditions {
+		if cond.Type == ackv1alpha1.ConditionTypeResourceSynced &&
+			cond.Status == corev1.ConditionTrue {
+			refResourceSynced = true
+		}
+	}
+	if !refResourceSynced {
+		return ackerr.ResourceReferenceNotSyncedFor(
+			"SecurityGroup",
+			namespace, name)
+	}
+	if obj.Status.ID == nil {
+		return ackerr.ResourceReferenceMissingTargetFieldFor(
+			"SecurityGroup",
+			namespace, name,
+			"Status.ID")
 	}
 	return nil
 }

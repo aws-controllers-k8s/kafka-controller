@@ -1,0 +1,25 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  name: $CLUSTER_NAME
+  brokerNodeGroupInfo:
+    instanceType: "kafka.t3.small"
+    # NOTE: Clusters require at least 2 subnets.
+    clientSubnets:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+    # securityGroupRefs points at an ec2 SecurityGroup custom resource by name.
+    # In this test the referenced SecurityGroup CR is intentionally never
+    # created, so the reference cannot be resolved and the controller must not
+    # create the MSK cluster.
+    securityGroupRefs:
+      - from:
+          name: $SECURITY_GROUP_REF_NAME
+    storageInfo:
+      ebsStorageInfo:
+        volumeSize: 10
+  kafkaVersion: "3.9.x"
+  # NOTE: Number of broker nodes need to be a multiple of the number of subnets
+  numberOfBrokerNodes: 2
