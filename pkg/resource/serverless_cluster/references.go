@@ -349,9 +349,17 @@ func (rm *resourceManager) resolveReferenceForProvisioned_BrokerNodeGroupInfo_Se
 					if arr.Name == nil || *arr.Name == "" {
 						return hasReferences, fmt.Errorf("provided resource reference is nil or empty: Provisioned.BrokerNodeGroupInfo.SecurityGroupRefs")
 					}
-					namespace := ko.ObjectMeta.GetNamespace()
-					if arr.Namespace != nil && *arr.Namespace != "" {
-						namespace = *arr.Namespace
+					namespace, err := ackrt.ResolveCrossNamespaceReference(
+						ctx,
+						rm.cfg.EnableCrossNamespace,
+						&ko.Status.Conditions,
+						ackrt.CrossNamespaceRefKindResource,
+						ko.ObjectMeta.GetNamespace(),
+						arr.Namespace,
+						*arr.Name,
+					)
+					if err != nil {
+						return hasReferences, err
 					}
 					obj := &ec2apitypes.SecurityGroup{}
 					if err := getReferencedResourceState_SecurityGroup(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
