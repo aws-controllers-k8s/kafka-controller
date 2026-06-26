@@ -66,7 +66,9 @@ type BrokerNodeGroupInfo struct {
 	// Information about the broker access configuration.
 	ConnectivityInfo *ConnectivityInfo `json:"connectivityInfo,omitempty"`
 	InstanceType     *string           `json:"instanceType,omitempty"`
-	SecurityGroups   []*string         `json:"securityGroups,omitempty"`
+	// Reference field for SecurityGroups
+	SecurityGroupRefs []*ackv1alpha1.AWSResourceReferenceWrapper `json:"securityGroupRefs,omitempty"`
+	SecurityGroups    []*string                                  `json:"securityGroups,omitempty"`
 	// Contains information about storage volumes attached to MSK broker nodes.
 	StorageInfo *StorageInfo `json:"storageInfo,omitempty"`
 }
