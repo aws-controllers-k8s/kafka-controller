@@ -76,6 +76,8 @@ rules:
   - securitygroups/status
   - subnets
   - subnets/status
+  - vpcs
+  - vpcs/status
   verbs:
   - get
   - list
@@ -85,6 +87,7 @@ rules:
   - clusters
   - configurations
   - serverlessclusters
+  - vpcconnections
   verbs:
   - create
   - delete
@@ -99,6 +102,7 @@ rules:
   - clusters/status
   - configurations/status
   - serverlessclusters/status
+  - vpcconnections/status
   verbs:
   - get
   - patch

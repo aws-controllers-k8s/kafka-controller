@@ -44,6 +44,7 @@ import (
 	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/cluster"
 	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/configuration"
 	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/serverless_cluster"
+	_ "github.com/aws-controllers-k8s/kafka-controller/pkg/resource/vpc_connection"
 
 	"github.com/aws-controllers-k8s/kafka-controller/pkg/version"
 )

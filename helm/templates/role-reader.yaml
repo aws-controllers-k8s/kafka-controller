@@ -19,6 +19,7 @@ rules:
   - clusters
   - configurations
   - serverlessclusters
+  - vpcconnections
   verbs:
   - get
   - list
