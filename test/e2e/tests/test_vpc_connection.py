@@ -15,7 +15,6 @@
 
 import time
 
-import boto3
 import pytest
 
 from acktest.k8s import condition
@@ -35,11 +34,15 @@ CHECK_STATUS_WAIT_SECONDS = 30
 
 # Target MSK cluster provisioning can take >30 minutes.
 CLUSTER_CREATE_TIMEOUT_SECONDS = 60 * 45
+# Enabling VpcConnectivity via UpdateConnectivity triggers a heavyweight
+# cluster reconfiguration (PrivateLink/NLB setup, rolling broker updates) that
+# commonly takes 30-60+ minutes while the cluster sits in UPDATING.
+CLUSTER_UPDATE_TIMEOUT_SECONDS = 60 * 90
 CLUSTER_POLL_INTERVAL_SECONDS = 30
 
 
-def _wait_target_cluster_active(kafka_client, cluster_arn):
-    deadline = time.time() + CLUSTER_CREATE_TIMEOUT_SECONDS
+def _wait_target_cluster_active(kafka_client, cluster_arn, timeout_seconds=CLUSTER_CREATE_TIMEOUT_SECONDS):
+    deadline = time.time() + timeout_seconds
     while time.time() < deadline:
         resp = kafka_client.describe_cluster_v2(ClusterArn=cluster_arn)
         state = resp["ClusterInfo"]["State"]
@@ -95,7 +98,7 @@ def target_cluster(request, kafka_client):
     # for ACTIVE, UpdateConnectivity, the second wait) raises before `yield`.
     def _delete_target_cluster():
         try:
-            kafka_client.delete_cluster_v2(ClusterArn=cluster_arn)
+            kafka_client.delete_cluster(ClusterArn=cluster_arn)
         except Exception:
             pass
 
@@ -123,7 +126,11 @@ def target_cluster(request, kafka_client):
     # UpdateConnectivity is asynchronous: the cluster moves to UPDATING then
     # back to ACTIVE. Give the state a moment to flip before polling.
     time.sleep(CLUSTER_POLL_INTERVAL_SECONDS)
-    _wait_target_cluster_active(kafka_client, cluster_arn)
+    _wait_target_cluster_active(
+        kafka_client,
+        cluster_arn,
+        timeout_seconds=CLUSTER_UPDATE_TIMEOUT_SECONDS,
+    )
 
     yield cluster_arn
 
@@ -131,7 +138,9 @@ def target_cluster(request, kafka_client):
 @pytest.fixture(scope="module")
 def simple_vpc_connection(target_cluster):
     resources = get_bootstrap_resources()
-    vpc = resources.ClusterVPC
+    # The VpcConnection lives in its own DNS-enabled VPC, separate from the
+    # ClusterVPC that hosts the target MSK cluster.
+    vpc = resources.VpcConnectionVPC
     subnet_id_1 = vpc.public_subnets.subnet_ids[0]
     subnet_id_2 = vpc.public_subnets.subnet_ids[1]
     sg_id = vpc.security_group.group_id

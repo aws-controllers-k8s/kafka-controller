@@ -24,8 +24,33 @@ from e2e import bootstrap_directory
 
 
 @dataclass
+class DNSEnabledVPC(VPC):
+    """A `VPC` with DNS hostnames and DNS support enabled.
+
+    MSK VPC connections require the target cluster's VPC to have both
+    `enableDnsSupport` and `enableDnsHostnames` turned on. The base acktest
+    `VPC` leaves these at their `create_vpc` defaults (support on, hostnames
+    off), so we enable them once the VPC exists.
+    """
+
+    def bootstrap(self):
+        super().bootstrap()
+
+        # DNS support must be enabled before DNS hostnames can be.
+        self.ec2_client.modify_vpc_attribute(
+            VpcId=self.vpc_id,
+            EnableDnsSupport={"Value": True},
+        )
+        self.ec2_client.modify_vpc_attribute(
+            VpcId=self.vpc_id,
+            EnableDnsHostnames={"Value": True},
+        )
+
+
+@dataclass
 class BootstrapResources(Resources):
     ClusterVPC: VPC
+    VpcConnectionVPC: DNSEnabledVPC
     SCRAMSecret1: Secret
     SCRAMSecret2: Secret
     LogBucket: Bucket

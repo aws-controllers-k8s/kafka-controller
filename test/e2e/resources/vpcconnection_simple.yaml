@@ -1,5 +1,5 @@
 apiVersion: kafka.services.k8s.aws/v1alpha1
-kind: VpcConnection
+kind: VPCConnection
 metadata:
   name: $VPC_CONNECTION_NAME
 spec:
