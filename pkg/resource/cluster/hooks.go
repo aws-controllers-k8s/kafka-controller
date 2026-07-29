@@ -204,6 +204,9 @@ func (rm *resourceManager) customUpdate(
 	case delta.DifferentAt("Spec.Rebalancing"):
 		return rm.updateRebalancing(ctx, desired, latest)
 
+	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity"):
+		return rm.updateConnectivity(ctx, desired, latest)
+
 	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType"):
 		return rm.updateConnectivity(ctx, desired, latest)
 
@@ -299,6 +302,33 @@ func (rm *resourceManager) updateConnectivity(
 			ci.PublicAccess = &svcsdktypes.PublicAccess{
 				Type: desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type,
 			}
+		}
+		if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+			vc := &svcsdktypes.VpcConnectivity{}
+			if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+				vca := &svcsdktypes.VpcConnectivityClientAuthentication{}
+				if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+					vcSasl := &svcsdktypes.VpcConnectivitySasl{}
+					if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil {
+						vcSasl.Iam = &svcsdktypes.VpcConnectivityIam{
+							Enabled: desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled,
+						}
+					}
+					if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil {
+						vcSasl.Scram = &svcsdktypes.VpcConnectivityScram{
+							Enabled: desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled,
+						}
+					}
+					vca.Sasl = vcSasl
+				}
+				if desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil {
+					vca.Tls = &svcsdktypes.VpcConnectivityTls{
+						Enabled: desired.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled,
+					}
+				}
+				vc.ClientAuthentication = vca
+			}
+			ci.VpcConnectivity = vc
 		}
 		input.ConnectivityInfo = ci
 	}
@@ -844,6 +874,9 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		}
 		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
 			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType
+		}
+		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
 		}
 	}
 	if a.ko.Spec.BrokerNodeGroupInfo.SecurityGroups == nil {
