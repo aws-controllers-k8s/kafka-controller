@@ -101,10 +101,12 @@ type ClientAuthentication struct {
 
 // The client VPC connection object.
 type ClientVPCConnection struct {
-	Authentication   *string      `json:"authentication,omitempty"`
-	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
-	Owner            *string      `json:"owner,omitempty"`
-	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+	Authentication *string      `json:"authentication,omitempty"`
+	CreationTime   *metav1.Time `json:"creationTime,omitempty"`
+	Owner          *string      `json:"owner,omitempty"`
+	// The state of a VPC connection.
+	State            *string `json:"state,omitempty"`
+	VPCConnectionARN *string `json:"vpcConnectionARN,omitempty"`
 }
 
 type CloudWatchLogs struct {
@@ -272,6 +274,8 @@ type ConnectivityInfo struct {
 	NetworkType *string `json:"networkType,omitempty"`
 	// Public access control for brokers.
 	PublicAccess *PublicAccess `json:"publicAccess,omitempty"`
+	// VPC connectivity access control for brokers.
+	VPCConnectivity *VPCConnectivity `json:"vpcConnectivity,omitempty"`
 }
 
 // Details about consumer group replication.
@@ -704,15 +708,6 @@ type VPCConfig struct {
 	SubnetIDs        []*string `json:"subnetIDs,omitempty"`
 }
 
-// The VPC connection object.
-type VPCConnection struct {
-	Authentication   *string      `json:"authentication,omitempty"`
-	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
-	TargetClusterARN *string      `json:"targetClusterARN,omitempty"`
-	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
-	VPCID            *string      `json:"vpcID,omitempty"`
-}
-
 // Description of the VPC connection.
 type VPCConnectionInfo struct {
 	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
@@ -727,9 +722,42 @@ type VPCConnectionInfoServerless struct {
 	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
 }
 
+// The VPC connection object.
+type VPCConnection_SDK struct {
+	Authentication *string      `json:"authentication,omitempty"`
+	CreationTime   *metav1.Time `json:"creationTime,omitempty"`
+	// The state of a VPC connection.
+	State            *string `json:"state,omitempty"`
+	TargetClusterARN *string `json:"targetClusterARN,omitempty"`
+	VPCConnectionARN *string `json:"vpcConnectionARN,omitempty"`
+	VPCID            *string `json:"vpcID,omitempty"`
+}
+
+// VPC connectivity access control for brokers.
+type VPCConnectivity struct {
+	// Includes all client authentication information for VPC connectivity.
+	ClientAuthentication *VPCConnectivityClientAuthentication `json:"clientAuthentication,omitempty"`
+}
+
+// Includes all client authentication information for VPC connectivity.
+type VPCConnectivityClientAuthentication struct {
+	// Details for SASL client authentication for VPC connectivity.
+	SASL *VPCConnectivitySASL `json:"sasl,omitempty"`
+	// Details for TLS client authentication for VPC connectivity.
+	TLS *VPCConnectivityTLS `json:"tls,omitempty"`
+}
+
 // Details for IAM access control for VPC connectivity.
 type VPCConnectivityIAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Details for SASL client authentication for VPC connectivity.
+type VPCConnectivitySASL struct {
+	// Details for IAM access control for VPC connectivity.
+	IAM *VPCConnectivityIAM `json:"iam,omitempty"`
+	// Details for SASL/SCRAM client authentication for VPC connectivity.
+	SCRAM *VPCConnectivitySCRAM `json:"scram,omitempty"`
 }
 
 // Details for SASL/SCRAM client authentication for VPC connectivity.

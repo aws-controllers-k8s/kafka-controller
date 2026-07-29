@@ -153,6 +153,7 @@ reconcile:
     - Cluster
     - Configuration
     - ServerlessCluster
+    - VPCConnection
 
 serviceAccount:
   # Specifies whether a service account should be created

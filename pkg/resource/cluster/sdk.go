@@ -111,6 +111,39 @@ func (rm *resourceManager) sdkFind(
 				}
 				f1f2.PublicAccess = f1f2f1
 			}
+			if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity != nil {
+				f1f2f2 := &svcapitypes.VPCConnectivity{}
+				if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication != nil {
+					f1f2f2f0 := &svcapitypes.VPCConnectivityClientAuthentication{}
+					if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl != nil {
+						f1f2f2f0f0 := &svcapitypes.VPCConnectivitySASL{}
+						if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl.Iam != nil {
+							f1f2f2f0f0f0 := &svcapitypes.VPCConnectivityIAM{}
+							if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl.Iam.Enabled != nil {
+								f1f2f2f0f0f0.Enabled = resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl.Iam.Enabled
+							}
+							f1f2f2f0f0.IAM = f1f2f2f0f0f0
+						}
+						if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl.Scram != nil {
+							f1f2f2f0f0f1 := &svcapitypes.VPCConnectivitySCRAM{}
+							if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl.Scram.Enabled != nil {
+								f1f2f2f0f0f1.Enabled = resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Sasl.Scram.Enabled
+							}
+							f1f2f2f0f0.SCRAM = f1f2f2f0f0f1
+						}
+						f1f2f2f0.SASL = f1f2f2f0f0
+					}
+					if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Tls != nil {
+						f1f2f2f0f1 := &svcapitypes.VPCConnectivityTLS{}
+						if resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Tls.Enabled != nil {
+							f1f2f2f0f1.Enabled = resp.ClusterInfo.BrokerNodeGroupInfo.ConnectivityInfo.VpcConnectivity.ClientAuthentication.Tls.Enabled
+						}
+						f1f2f2f0.TLS = f1f2f2f0f1
+					}
+					f1f2f2.ClientAuthentication = f1f2f2f0
+				}
+				f1f2.VPCConnectivity = f1f2f2
+			}
 			f1.ConnectivityInfo = f1f2
 		}
 		if resp.ClusterInfo.BrokerNodeGroupInfo.InstanceType != nil {
@@ -485,6 +518,39 @@ func (rm *resourceManager) newCreateRequestPayload(
 					f0f2f1.Type = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 				}
 				f0f2.PublicAccess = f0f2f1
+			}
+			if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				f0f2f2 := &svcsdktypes.VpcConnectivity{}
+				if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					f0f2f2f0 := &svcsdktypes.VpcConnectivityClientAuthentication{}
+					if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+						f0f2f2f0f0 := &svcsdktypes.VpcConnectivitySasl{}
+						if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil {
+							f0f2f2f0f0f0 := &svcsdktypes.VpcConnectivityIam{}
+							if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled != nil {
+								f0f2f2f0f0f0.Enabled = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled
+							}
+							f0f2f2f0f0.Iam = f0f2f2f0f0f0
+						}
+						if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil {
+							f0f2f2f0f0f1 := &svcsdktypes.VpcConnectivityScram{}
+							if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled != nil {
+								f0f2f2f0f0f1.Enabled = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled
+							}
+							f0f2f2f0f0.Scram = f0f2f2f0f0f1
+						}
+						f0f2f2f0.Sasl = f0f2f2f0f0
+					}
+					if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil {
+						f0f2f2f0f1 := &svcsdktypes.VpcConnectivityTls{}
+						if r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled != nil {
+							f0f2f2f0f1.Enabled = r.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled
+						}
+						f0f2f2f0.Tls = f0f2f2f0f1
+					}
+					f0f2f2.ClientAuthentication = f0f2f2f0
+				}
+				f0f2.VpcConnectivity = f0f2f2
 			}
 			f0.ConnectivityInfo = f0f2
 		}

@@ -2,12 +2,11 @@ ignore:
   resource_names:
     #- Cluster
     # - ClusterV2
-    - VpcConnection
+    # - VpcConnection
     - Replicator
     - Topic
     #- Configuration
   field_paths:
-   - ConnectivityInfo.VpcConnectivity
    - DescribeClusterOutput.ClusterInfo.BrokerNodeGroupInfo.ZoneIds
 operations:
   CreateClusterV2:
@@ -222,3 +221,13 @@ resources:
         - path: Status.State
           in:
             - ACTIVE
+
+  VpcConnection:
+    synced:
+      when:
+        - path: Status.State
+          in:
+            - AVAILABLE
+    exceptions:
+      terminal_codes:
+        - BadRequestException
