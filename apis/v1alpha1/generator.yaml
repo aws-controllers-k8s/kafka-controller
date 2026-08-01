@@ -2,7 +2,6 @@ ignore:
   resource_names:
     #- Cluster
     # - ClusterV2
-    - VpcConnection
     - Replicator
     - Topic
     #- Configuration
@@ -222,3 +221,46 @@ resources:
         - path: Status.State
           in:
             - ACTIVE
+  VpcConnection:
+    is_arn_primary_key: true
+    renames:
+      operations:
+        DescribeVpcConnection:
+          output_fields:
+            Subnets: ClientSubnets
+    update_operation:
+      custom_method_name: customUpdate
+    synced:
+      when:
+        - path: Status.State
+          in:
+            - AVAILABLE
+    exceptions:
+      terminal_codes:
+        - BadRequestException
+    fields:
+      Authentication:
+        is_immutable: true
+      ClientSubnets:
+        is_immutable: true
+        references:
+          service_name: ec2
+          resource: Subnet
+          path: Status.SubnetID
+      SecurityGroups:
+        is_immutable: true
+        references:
+          service_name: ec2
+          resource: SecurityGroup
+          path: Status.ID
+      TargetClusterArn:
+        is_immutable: true
+        references:
+          resource: Cluster
+          path: Status.ACKResourceMetadata.ARN
+      VpcId:
+        is_immutable: true
+        references:
+          service_name: ec2
+          resource: VPC
+          path: Status.VPCID

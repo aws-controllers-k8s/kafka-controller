@@ -20,7 +20,7 @@ from acktest.bootstrapping.secretsmanager import Secret
 from acktest.bootstrapping.s3 import Bucket
 
 from e2e import bootstrap_directory
-from e2e.bootstrap_resources import BootstrapResources
+from e2e.bootstrap_resources import BootstrapResources, DNSEnabledVPC
 
 
 def service_bootstrap() -> Resources:
@@ -29,6 +29,9 @@ def service_bootstrap() -> Resources:
     resources = BootstrapResources(
         ClusterVPC=VPC(
             name_prefix="cluster-vpc", num_public_subnet=3, num_private_subnet=2
+        ),
+        VpcConnectionVPC=DNSEnabledVPC(
+            name_prefix="vpc-conn-vpc", num_public_subnet=3, num_private_subnet=2
         ),
         SCRAMSecret1=Secret(
             name_prefix="AmazonMSK_",

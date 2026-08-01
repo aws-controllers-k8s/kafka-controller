@@ -1,0 +1,15 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: VPCConnection
+metadata:
+  name: $VPC_CONNECTION_NAME
+spec:
+  authentication: $AUTHENTICATION
+  targetClusterARN: $TARGET_CLUSTER_ARN
+  vpcID: $VPC_ID
+  clientSubnets:
+    - $SUBNET_ID_1
+    - $SUBNET_ID_2
+  securityGroups:
+    - $SECURITY_GROUP_ID
+  tags:
+    initialKey: initialValue

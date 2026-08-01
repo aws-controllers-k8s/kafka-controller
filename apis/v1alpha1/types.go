@@ -101,10 +101,12 @@ type ClientAuthentication struct {
 
 // The client VPC connection object.
 type ClientVPCConnection struct {
-	Authentication   *string      `json:"authentication,omitempty"`
-	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
-	Owner            *string      `json:"owner,omitempty"`
-	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+	Authentication *string      `json:"authentication,omitempty"`
+	CreationTime   *metav1.Time `json:"creationTime,omitempty"`
+	Owner          *string      `json:"owner,omitempty"`
+	// The state of a VPC connection.
+	State            *string `json:"state,omitempty"`
+	VPCConnectionARN *string `json:"vpcConnectionARN,omitempty"`
 }
 
 type CloudWatchLogs struct {
@@ -704,15 +706,6 @@ type VPCConfig struct {
 	SubnetIDs        []*string `json:"subnetIDs,omitempty"`
 }
 
-// The VPC connection object.
-type VPCConnection struct {
-	Authentication   *string      `json:"authentication,omitempty"`
-	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
-	TargetClusterARN *string      `json:"targetClusterARN,omitempty"`
-	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
-	VPCID            *string      `json:"vpcID,omitempty"`
-}
-
 // Description of the VPC connection.
 type VPCConnectionInfo struct {
 	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
@@ -725,6 +718,17 @@ type VPCConnectionInfoServerless struct {
 	CreationTime     *metav1.Time `json:"creationTime,omitempty"`
 	Owner            *string      `json:"owner,omitempty"`
 	VPCConnectionARN *string      `json:"vpcConnectionARN,omitempty"`
+}
+
+// The VPC connection object.
+type VPCConnection_SDK struct {
+	Authentication *string      `json:"authentication,omitempty"`
+	CreationTime   *metav1.Time `json:"creationTime,omitempty"`
+	// The state of a VPC connection.
+	State            *string `json:"state,omitempty"`
+	TargetClusterARN *string `json:"targetClusterARN,omitempty"`
+	VPCConnectionARN *string `json:"vpcConnectionARN,omitempty"`
+	VPCID            *string `json:"vpcID,omitempty"`
 }
 
 // Details for IAM access control for VPC connectivity.
