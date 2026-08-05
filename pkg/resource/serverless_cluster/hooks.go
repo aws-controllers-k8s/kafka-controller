@@ -195,7 +195,8 @@ func (rm *resourceManager) customUpdate(
 	case delta.DifferentAt("Spec.Provisioned.Rebalancing"):
 		return rm.updateRebalancing(ctx, updatedRes, latest)
 
-	case delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType"):
+	case delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType") ||
+		delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity"):
 		return rm.updateConnectivity(ctx, updatedRes, latest)
 
 	case delta.DifferentAt("Spec.Provisioned.KafkaVersion"):
@@ -315,6 +316,36 @@ func (rm *resourceManager) updateConnectivity(
 			ci.PublicAccess = &svcsdktypes.PublicAccess{
 				Type: desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type,
 			}
+		}
+		// Translate the desired VPC connectivity auth configuration. VPC
+		// connectivity auth is created disabled and enabled here (once the
+		// cluster is ACTIVE) via UpdateConnectivity.
+		if vc := desired.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity; vc != nil {
+			vpcConn := &svcsdktypes.VpcConnectivity{}
+			if vc.ClientAuthentication != nil {
+				ca := &svcsdktypes.VpcConnectivityClientAuthentication{}
+				if vc.ClientAuthentication.SASL != nil {
+					sasl := &svcsdktypes.VpcConnectivitySasl{}
+					if vc.ClientAuthentication.SASL.IAM != nil {
+						sasl.Iam = &svcsdktypes.VpcConnectivityIam{
+							Enabled: vc.ClientAuthentication.SASL.IAM.Enabled,
+						}
+					}
+					if vc.ClientAuthentication.SASL.SCRAM != nil {
+						sasl.Scram = &svcsdktypes.VpcConnectivityScram{
+							Enabled: vc.ClientAuthentication.SASL.SCRAM.Enabled,
+						}
+					}
+					ca.Sasl = sasl
+				}
+				if vc.ClientAuthentication.TLS != nil {
+					ca.Tls = &svcsdktypes.VpcConnectivityTls{
+						Enabled: vc.ClientAuthentication.TLS.Enabled,
+					}
+				}
+				vpcConn.ClientAuthentication = ca
+			}
+			ci.VpcConnectivity = vpcConn
 		}
 		input.ConnectivityInfo = ci
 	}
@@ -880,6 +911,23 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3
 			}
 		}
+		// MSK's DescribeCluster API returns VpcConnectivity with explicit
+		// {enabled: false} structs when VPC connectivity auth is disabled, while
+		// users typically omit the block (nil). Normalize to prevent spurious
+		// diffs. A genuine enabled:true still produces a delta so the
+		// UpdateConnectivity enable path fires after the cluster is ACTIVE.
+		if a.ko.Spec.Provisioned.BrokerNodeGroupInfo != nil &&
+			a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil &&
+			b.ko.Spec.Provisioned.BrokerNodeGroupInfo != nil &&
+			b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			aVPC := a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
+			bVPC := b.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
+			if aVPC == nil {
+				a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = bVPC
+			} else if bVPC == nil && vpcConnectivityDisabled(aVPC) {
+				a.ko.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = nil
+			}
+		}
 		if a.ko.Spec.Provisioned.ConfigurationInfo == nil {
 			a.ko.Spec.Provisioned.ConfigurationInfo = b.ko.Spec.Provisioned.ConfigurationInfo
 		}
@@ -904,6 +952,28 @@ func loggingDisabled(li *svcapitypes.LoggingInfo) bool {
 		return false
 	}
 	if bl.S3 != nil && aws.ToBool(bl.S3.Enabled) {
+		return false
+	}
+	return true
+}
+
+// vpcConnectivityDisabled returns true when every VPC connectivity auth scheme
+// in the supplied VPCConnectivity is absent or explicitly disabled. This is
+// semantically identical to a user omitting the vpcConnectivity block entirely.
+func vpcConnectivityDisabled(vc *svcapitypes.VPCConnectivity) bool {
+	if vc == nil || vc.ClientAuthentication == nil {
+		return true
+	}
+	ca := vc.ClientAuthentication
+	if ca.SASL != nil {
+		if ca.SASL.IAM != nil && aws.ToBool(ca.SASL.IAM.Enabled) {
+			return false
+		}
+		if ca.SASL.SCRAM != nil && aws.ToBool(ca.SASL.SCRAM.Enabled) {
+			return false
+		}
+	}
+	if ca.TLS != nil && aws.ToBool(ca.TLS.Enabled) {
 		return false
 	}
 	return true

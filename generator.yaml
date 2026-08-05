@@ -6,7 +6,6 @@ ignore:
     - Topic
     #- Configuration
   field_paths:
-   - ConnectivityInfo.VpcConnectivity
    - DescribeClusterOutput.ClusterInfo.BrokerNodeGroupInfo.ZoneIds
 operations:
   CreateClusterV2:
@@ -38,6 +37,8 @@ resources:
         template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/cluster/sdk_create_post_set_output.go.tpl
+      sdk_create_post_build_request:
+        template_path: hooks/cluster/sdk_create_post_build_request.go.tpl
       sdk_delete_pre_build_request:
         template_path: hooks/cluster/sdk_delete_pre_build_request.go.tpl
       delta_pre_compare:
@@ -165,6 +166,12 @@ resources:
       Provisioned.BrokerNodeGroupInfo.ConnectivityInfo:
         late_initialize:
           skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity:
+        late_initialize:
+          skip_incomplete_check: {}
       Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess:
         late_initialize:
           skip_incomplete_check: {}
@@ -210,6 +217,8 @@ resources:
         template_path: hooks/serverless_cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/serverless_cluster/sdk_create_post_set_output.go.tpl
+      sdk_create_post_build_request:
+        template_path: hooks/serverless_cluster/sdk_create_post_build_request.go.tpl
       delta_pre_compare:
         code: customPreCompare(delta, a, b)
     update_operation:

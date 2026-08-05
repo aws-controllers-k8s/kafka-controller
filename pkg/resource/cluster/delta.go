@@ -91,6 +91,51 @@ func newResourceDelta(
 					}
 				}
 			}
+			if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity) {
+				delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity)
+			} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication) {
+					delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication)
+				} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL) {
+						delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL)
+					} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+						if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM) {
+							delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM)
+						} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil {
+							if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled) {
+								delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled)
+							} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled != nil {
+								if *a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled != *b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled {
+									delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled)
+								}
+							}
+						}
+						if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM) {
+							delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM)
+						} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil {
+							if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled) {
+								delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled)
+							} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled != nil {
+								if *a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled != *b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled {
+									delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled)
+								}
+							}
+						}
+					}
+					if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS) {
+						delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS)
+					} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil {
+						if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled) {
+							delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled)
+						} else if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled != nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled != nil {
+							if *a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled != *b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled {
+								delta.Add("Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled", a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled, b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled)
+							}
+						}
+					}
+				}
+			}
 		}
 		if ackcompare.HasNilDifference(a.ko.Spec.BrokerNodeGroupInfo.InstanceType, b.ko.Spec.BrokerNodeGroupInfo.InstanceType) {
 			delta.Add("Spec.BrokerNodeGroupInfo.InstanceType", a.ko.Spec.BrokerNodeGroupInfo.InstanceType, b.ko.Spec.BrokerNodeGroupInfo.InstanceType)

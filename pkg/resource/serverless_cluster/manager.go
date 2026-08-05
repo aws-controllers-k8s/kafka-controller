@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=serverlessclusters/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{"BrokerNodeGroupInfo", "BrokerAZDistribution", "ConnectivityInfo", "PublicAccess", "Type", "SecurityGroups", "StorageInfo", "EBSStorageInfo", "VolumeSize", "ClientAuthentication", "EncryptionInfo", "EnhancedMonitoring", "OpenMonitoring", "Rebalancing", "StorageMode"}
+var lateInitializeFieldNames = []string{"BrokerNodeGroupInfo", "BrokerAZDistribution", "ConnectivityInfo", "NetworkType", "PublicAccess", "Type", "VPCConnectivity", "SecurityGroups", "StorageInfo", "EBSStorageInfo", "VolumeSize", "ClientAuthentication", "EncryptionInfo", "EnhancedMonitoring", "OpenMonitoring", "Rebalancing", "StorageMode"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -284,6 +284,15 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
 		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
 			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType == nil {
+					latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType
+				}
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess == nil {
 					latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess
 				}
@@ -297,6 +306,15 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 					if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type == nil {
 						latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type
 					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.Provisioned != nil && latestKo.Spec.Provisioned != nil {
+		if observedKo.Spec.Provisioned.BrokerNodeGroupInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo != nil {
+			if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+				if observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity == nil {
+					latestKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = observedKo.Spec.Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
 				}
 			}
 		}

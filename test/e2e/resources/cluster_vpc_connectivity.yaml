@@ -1,0 +1,38 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  name: $CLUSTER_NAME
+  # VPC connectivity (SASL/IAM) requires SASL/IAM client authentication enabled
+  # on the cluster.
+  clientAuthentication:
+    sasl:
+      iam:
+        enabled: true
+  brokerNodeGroupInfo:
+    # NOTE: VPC connectivity is only supported on M5 (and later) instance
+    # types. t3.small will NOT work.
+    instanceType: "kafka.m5.large"
+    # NOTE: Clusters require at least 2 subnets.
+    clientSubnets:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+    storageInfo:
+      ebsStorageInfo:
+        volumeSize: 10
+    connectivityInfo:
+      # NOTE: MSK rejects CreateCluster when a vpcConnectivity auth scheme is
+      # enabled. The controller creates the cluster with all vpcConnectivity
+      # auth disabled, then enables it via UpdateConnectivity once the cluster
+      # is ACTIVE. The spec below must therefore retain enabled: true.
+      vpcConnectivity:
+        clientAuthentication:
+          sasl:
+            iam:
+              enabled: true
+  kafkaVersion: "3.9.x"
+  # NOTE: Number of broker nodes need to be a multiple of the number of subnets
+  numberOfBrokerNodes: 2
+  tags:
+    tag1: val1
