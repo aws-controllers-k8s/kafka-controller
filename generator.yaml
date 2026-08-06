@@ -172,6 +172,30 @@ resources:
       Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity:
         late_initialize:
           skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS:
+        late_initialize:
+          skip_incomplete_check: {}
+      Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled:
+        late_initialize:
+          skip_incomplete_check: {}
       Provisioned.BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess:
         late_initialize:
           skip_incomplete_check: {}

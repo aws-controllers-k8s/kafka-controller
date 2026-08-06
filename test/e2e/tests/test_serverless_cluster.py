@@ -598,12 +598,16 @@ class TestProvisionedClusterVPCConnectivity:
         assert vpc_conn["clientAuthentication"]["sasl"]["iam"]["enabled"] is True
 
         # The controller must drive UpdateConnectivity asynchronously and then
-        # settle back to Synced=True once complete.
+        # settle back to Synced=True once complete. If the cluster is observed
+        # ACTIVE before the controller kicks off UpdateConnectivity, Synced may
+        # already be True momentarily; this wait must budget for the full
+        # VPC-connectivity reconfiguration window rather than the generic
+        # async-update budget.
         assert k8s.wait_on_condition(
             ref,
             "ACK.ResourceSynced",
             "True",
-            wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            wait_periods=VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS // POLL_INTERVAL_SECONDS,
             period_length=POLL_INTERVAL_SECONDS,
         )
 
