@@ -415,6 +415,14 @@ func (rm *resourceManager) sdkFind(
 		return &resource{ko}, nil
 	}
 
+	// Cluster resource policies apply to both provisioned and serverless
+	// clusters, so this is fetched independently of the SCRAM secret guard
+	// below. A NotFoundException simply means no policy is attached and must
+	// not surface as a ReadOne 404 for the ServerlessCluster.
+	if err = rm.setClusterPolicy(ctx, ko); err != nil {
+		return nil, err
+	}
+
 	// Unprovisioned Clusters do not use Scram Secrets
 	if ko.Spec.Provisioned != nil {
 		ko.Spec.AssociatedSCRAMSecrets, err = rm.getAssociatedScramSecrets(ctx, &resource{ko})
@@ -968,6 +976,18 @@ func (rm *resourceManager) updateConditions(
 // and if the exception indicates that it is a Terminal exception
 // 'Terminal' exception are specified in generator configuration
 func (rm *resourceManager) terminalAWSError(err error) bool {
-	// No terminal_errors specified for this resource in generator config
-	return false
+	if err == nil {
+		return false
+	}
+
+	var terminalErr smithy.APIError
+	if !errors.As(err, &terminalErr) {
+		return false
+	}
+	switch terminalErr.ErrorCode() {
+	case "BadRequestException":
+		return true
+	default:
+		return false
+	}
 }

@@ -21,6 +21,14 @@
 		return &resource{ko}, nil
 	}
 
+	// Cluster resource policies apply to both provisioned and serverless
+	// clusters, so this is fetched independently of the SCRAM secret guard
+	// below. A NotFoundException simply means no policy is attached and must
+	// not surface as a ReadOne 404 for the ServerlessCluster.
+	if err = rm.setClusterPolicy(ctx, ko); err != nil {
+		return nil, err
+	}
+
 	// Unprovisioned Clusters do not use Scram Secrets
 	if ko.Spec.Provisioned != nil {
 		ko.Spec.AssociatedSCRAMSecrets, err = rm.getAssociatedScramSecrets(ctx, &resource{ko})

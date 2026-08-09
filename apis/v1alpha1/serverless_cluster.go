@@ -27,6 +27,8 @@ type ServerlessClusterSpec struct {
 	// The name of the cluster.
 	// +kubebuilder:validation:Required
 	Name *string `json:"name"`
+	// The cluster policy.
+	Policy *string `json:"policy,omitempty"`
 	// Information about the provisioned cluster.
 	Provisioned *ProvisionedRequest `json:"provisioned,omitempty"`
 	// Information about the serverless cluster.

@@ -1,0 +1,19 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  name: $CLUSTER_NAME
+  brokerNodeGroupInfo:
+    instanceType: "kafka.t3.small"
+    # NOTE(jaypipes): Clusters require at least 2 subnets.
+    clientSubnets:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+    storageInfo:
+      ebsStorageInfo:
+        volumeSize: 10
+  kafkaVersion: "3.9.x"
+  # NOTE(jaypipes): Number of broker nodes need to be a multiple of the number
+  # of subnets
+  numberOfBrokerNodes: 2
