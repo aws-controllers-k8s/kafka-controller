@@ -37,6 +37,12 @@ POLL_INTERVAL_SECONDS = 30
 ASYNC_UPDATE_WAIT = 60 * 5
 LONG_ASYNC_UPDATE_WAIT = 60 * 40
 EXPRESS_WAIT_TIMEOUT_SECONDS = 60 * 60
+# Enabling VpcConnectivity via UpdateConnectivity triggers a heavyweight cluster
+# reconfiguration (PrivateLink/NLB setup, rolling broker updates) that commonly
+# takes 30-60+ minutes while the cluster sits in UPDATING. The controller kicks
+# this off as soon as the cluster first reaches ACTIVE, so the wait for it to
+# return to ACTIVE must budget for the full reconfiguration.
+VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS = 60 * 90
 
 @pytest.fixture(scope="module")
 def simple_provisioned_cluster():
@@ -501,6 +507,126 @@ class TestServerlessClusterUpdate:
                 kafka_client.delete_configuration(Arn=config_arn)
             except Exception:
                 pass
+
+
+@pytest.fixture(scope="module")
+def vpc_connectivity_provisioned_cluster():
+    cluster_name = random_suffix_name("ack-prov-vpc-conn", 24)
+
+    resources = get_bootstrap_resources()
+    vpc = resources.ClusterVPC
+    subnet_id_1 = vpc.public_subnets.subnet_ids[0]
+    subnet_id_2 = vpc.public_subnets.subnet_ids[1]
+
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["PROVISIONED_CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_id_1
+    replacements["SUBNET_ID_2"] = subnet_id_2
+
+    resource_data = load_resource(
+        "provisioned_serverlesscluster_vpc_connectivity",
+        additional_replacements=replacements,
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        SERVERLESSCLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+
+    yield (ref, cr)
+
+    _, deleted = k8s.delete_custom_resource(
+        ref,
+        period_length=DELETE_WAIT_SECONDS,
+    )
+    assert deleted
+    serverlesscluster.wait_until_deleted(cluster_name)
+
+
+@service_marker
+@pytest.mark.canary
+class TestProvisionedClusterVPCConnectivity:
+    """Verifies the disable-at-create, enable-async-after-ACTIVE flow for VPC
+    connectivity auth on the ServerlessCluster (Provisioned) path.
+
+    MSK rejects CreateClusterV2 when a vpcConnectivity auth scheme is enabled,
+    so the controller creates the cluster with vpcConnectivity auth disabled and
+    then enables it via UpdateConnectivity once the cluster is ACTIVE. The
+    user's spec must retain enabled: true so the post-ACTIVE reconcile detects
+    the delta and drives the async enable.
+    """
+
+    def test_vpc_connectivity_enabled_after_active(self, vpc_connectivity_provisioned_cluster):
+        ref, _ = vpc_connectivity_provisioned_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        cr = k8s.get_resource(ref)
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        # Wait for the cluster to reach ACTIVE. The create hook forced the
+        # vpcConnectivity auth flags to false in the CreateClusterV2 request, so
+        # the initial create must not be poisoned by a BadRequestException.
+        # Once ACTIVE, the controller immediately drives UpdateConnectivity, so
+        # the cluster may already be mid-reconfiguration by the time we poll;
+        # budget for the full enable duration.
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+            timeout_seconds=VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS,
+        )
+
+        # DRIFT CHECK FIRST: re-read the CR and assert the spec STILL shows
+        # vpcConnectivity...sasl.iam.enabled == True. This validates that the
+        # create hook mutated only the built SDK request and did NOT drift the
+        # desired spec.
+        cr = k8s.get_resource(ref)
+        vpc_conn = (
+            cr["spec"]["provisioned"]["brokerNodeGroupInfo"]["connectivityInfo"]["vpcConnectivity"]
+        )
+        assert vpc_conn["clientAuthentication"]["sasl"]["iam"]["enabled"] is True
+
+        # The controller must drive UpdateConnectivity asynchronously and then
+        # settle back to Synced=True once complete. If the cluster is observed
+        # ACTIVE before the controller kicks off UpdateConnectivity, Synced may
+        # already be True momentarily; this wait must budget for the full
+        # VPC-connectivity reconfiguration window rather than the generic
+        # async-update budget.
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS // POLL_INTERVAL_SECONDS,
+            period_length=POLL_INTERVAL_SECONDS,
+        )
+
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+            timeout_seconds=VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS,
+        )
+
+        # THEN assert AWS-side: DescribeCluster must report VPC connectivity
+        # SASL/IAM auth is now ENABLED.
+        aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
+        assert aws_cluster is not None
+        vpc_connectivity = (
+            aws_cluster["Provisioned"]["BrokerNodeGroupInfo"]["ConnectivityInfo"]["VpcConnectivity"]
+        )
+        assert (
+            vpc_connectivity["ClientAuthentication"]["Sasl"]["Iam"]["Enabled"] is True
+        )
 
 
 @pytest.fixture(scope="module")

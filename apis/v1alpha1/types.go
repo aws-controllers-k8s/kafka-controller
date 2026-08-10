@@ -274,6 +274,8 @@ type ConnectivityInfo struct {
 	NetworkType *string `json:"networkType,omitempty"`
 	// Public access control for brokers.
 	PublicAccess *PublicAccess `json:"publicAccess,omitempty"`
+	// VPC connectivity access control for brokers.
+	VPCConnectivity *VPCConnectivity `json:"vpcConnectivity,omitempty"`
 }
 
 // Details about consumer group replication.
@@ -731,9 +733,31 @@ type VPCConnection_SDK struct {
 	VPCID            *string `json:"vpcID,omitempty"`
 }
 
+// VPC connectivity access control for brokers.
+type VPCConnectivity struct {
+	// Includes all client authentication information for VPC connectivity.
+	ClientAuthentication *VPCConnectivityClientAuthentication `json:"clientAuthentication,omitempty"`
+}
+
+// Includes all client authentication information for VPC connectivity.
+type VPCConnectivityClientAuthentication struct {
+	// Details for SASL client authentication for VPC connectivity.
+	SASL *VPCConnectivitySASL `json:"sasl,omitempty"`
+	// Details for TLS client authentication for VPC connectivity.
+	TLS *VPCConnectivityTLS `json:"tls,omitempty"`
+}
+
 // Details for IAM access control for VPC connectivity.
 type VPCConnectivityIAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Details for SASL client authentication for VPC connectivity.
+type VPCConnectivitySASL struct {
+	// Details for IAM access control for VPC connectivity.
+	IAM *VPCConnectivityIAM `json:"iam,omitempty"`
+	// Details for SASL/SCRAM client authentication for VPC connectivity.
+	SCRAM *VPCConnectivitySCRAM `json:"scram,omitempty"`
 }
 
 // Details for SASL/SCRAM client authentication for VPC connectivity.
