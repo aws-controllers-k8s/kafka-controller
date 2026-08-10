@@ -986,3 +986,61 @@ func int32OrNil(num *int64) *int32 {
 
 	return aws.Int32(int32(*num))
 }
+
+// getClusterARN looks up the ARN of the cluster named by the supplied
+// resource's Spec.Name. MSK cluster ARNs embed a service-generated UUID
+// (arn:aws:kafka:<region>:<account>:cluster/<name>/<uuid>-<n>), so they cannot
+// be constructed from the name alone and must be read back from the API.
+//
+// Cluster names are unique within an account and region, so at most one
+// cluster can match. Returns nil (without error) when no cluster matches,
+// which callers translate into ackerr.NotFound.
+func (rm *resourceManager) getClusterARN(
+	ctx context.Context,
+	r *resource,
+) (arn *string, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.getClusterARN")
+	defer func() { exit(err) }()
+
+	// Spec.Name is required for create, but an adopted resource may be
+	// identified solely by its ARN, in which case there is nothing to look up.
+	if r.ko.Spec.Name == nil {
+		return nil, nil
+	}
+
+	input := &svcsdk.ListClustersV2Input{
+		ClusterNameFilter: r.ko.Spec.Name,
+	}
+
+	paginator := svcsdk.NewListClustersV2Paginator(rm.sdkapi, input)
+	for paginator.HasMorePages() {
+		resp, err := paginator.NextPage(ctx)
+		rm.metrics.RecordAPICall("READ_MANY", "ListClustersV2", err)
+		if err != nil {
+			return nil, err
+		}
+		if arn := findClusterARNByName(resp.ClusterInfoList, *r.ko.Spec.Name); arn != nil {
+			return arn, nil
+		}
+	}
+	return nil, nil
+}
+
+// findClusterARNByName returns the ARN of the cluster named exactly name, or
+// nil if the supplied page holds no such cluster.
+func findClusterARNByName(
+	clusters []svcsdktypes.Cluster,
+	name string,
+) *string {
+	for _, c := range clusters {
+		// ClusterNameFilter is a prefix filter, so a filter of "abc" also
+		// returns a cluster named "abcd". This exact-match check is what makes
+		// the lookup correct.
+		if c.ClusterName == nil || *c.ClusterName != name {
+			continue
+		}
+		return c.ClusterArn
+	}
+	return nil
+}

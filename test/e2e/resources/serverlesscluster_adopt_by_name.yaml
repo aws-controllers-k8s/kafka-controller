@@ -1,0 +1,9 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: ServerlessCluster
+metadata:
+  name: $SERVERLESS_CLUSTER_NAME
+  annotations:
+    services.k8s.aws/adoption-policy: adopt
+    services.k8s.aws/adoption-fields: "$ADOPTION_FIELDS"
+spec:
+  name: $SERVERLESS_CLUSTER_NAME

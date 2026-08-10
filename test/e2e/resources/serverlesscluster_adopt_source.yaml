@@ -1,0 +1,17 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: ServerlessCluster
+metadata:
+  name: $SERVERLESS_CLUSTER_NAME
+  annotations:
+    services.k8s.aws/deletion-policy: retain
+spec:
+  name: $SERVERLESS_CLUSTER_NAME
+  serverless:
+    vpcConfigs:
+    - subnetIDs:
+      - $SUBNET_ID_1
+      - $SUBNET_ID_2
+    clientAuthentication:
+      sasl:
+        iam:
+          enabled: true
