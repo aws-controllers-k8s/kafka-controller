@@ -694,6 +694,93 @@ class TestClusterVPCConnectivity:
 
 
 @pytest.fixture(scope="module")
+def adopt_by_name_cluster():
+    cluster_name = random_suffix_name("ack-adopt-name", 24)
+
+    resources = get_bootstrap_resources()
+    vpc = resources.ClusterVPC
+    subnet_ids = vpc.public_subnets.subnet_ids
+
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_ids[0]
+    replacements["SUBNET_ID_2"] = subnet_ids[1]
+
+    resource_data = load_resource(
+        "cluster_adopt_source",
+        additional_replacements=replacements,
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        CLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+    assert cr is not None
+
+    try:
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+        cr = k8s.get_resource(ref)
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+        cluster.wait_until(cluster_arn, cluster.state_matches("ACTIVE"))
+
+        # The retain deletion policy leaves the MSK cluster in place so the
+        # next CR can adopt it by name.
+        _, deleted = k8s.delete_custom_resource(
+            ref,
+            period_length=DELETE_WAIT_SECONDS,
+        )
+        assert deleted
+
+        replacements["ADOPTION_FIELDS"] = f'{{\\"name\\": \\"{cluster_name}\\"}}'
+        resource_data = load_resource(
+            "cluster_adopt_by_name",
+            additional_replacements=replacements,
+        )
+        k8s.create_custom_resource(ref, resource_data)
+        cr = k8s.wait_resource_consumed_by_controller(ref)
+        assert cr is not None
+
+        yield (ref, cr, cluster_arn)
+    finally:
+        try:
+            k8s.delete_custom_resource(ref, period_length=DELETE_WAIT_SECONDS)
+        except Exception:
+            pass
+        cluster.wait_until_deleted(cluster_name)
+
+
+@service_marker
+@pytest.mark.canary
+class TestClusterAdoptByName:
+    def test_adopt_by_name(self, adopt_by_name_cluster):
+        ref, _, cluster_arn = adopt_by_name_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        cr = k8s.get_resource(ref)
+        assert cr["status"]["ackResourceMetadata"]["arn"] == cluster_arn
+        assert cr["status"]["state"] == "ACTIVE"
+        assert cr["spec"]["kafkaVersion"] == "3.9.x"
+        assert cr["spec"]["numberOfBrokerNodes"] == 2
+
+        aws_cluster = cluster.get_by_arn(cluster_arn)
+        assert aws_cluster is not None
+        assert aws_cluster["ClusterName"] == cr["spec"]["name"]
+
+
+@pytest.fixture(scope="module")
 def express_cluster():
     cluster_name = random_suffix_name("ack-express", 24)
 

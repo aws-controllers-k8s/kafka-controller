@@ -33,6 +33,10 @@ resources:
           input_fields:
             ClusterName: Name
     hooks:
+      pre_populate_resource_from_annotation:
+        template_path: hooks/cluster/pre_populate_resource_from_annotation.go.tpl
+      sdk_read_one_pre_build_request:
+        template_path: hooks/cluster/sdk_read_one_pre_build_request.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
