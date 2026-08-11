@@ -21,6 +21,10 @@ resources:
     tags:
       ignore: true
     hooks:
+      pre_populate_resource_from_annotation:
+        template_path: hooks/configuration/pre_populate_resource_from_annotation.go.tpl
+      sdk_read_one_pre_build_request:
+        template_path: hooks/configuration/sdk_read_one_pre_build_request.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/configuration/sdk_read_one_post_set_output.go.tpl
   Cluster:
@@ -33,6 +37,10 @@ resources:
           input_fields:
             ClusterName: Name
     hooks:
+      pre_populate_resource_from_annotation:
+        template_path: hooks/cluster/pre_populate_resource_from_annotation.go.tpl
+      sdk_read_one_pre_build_request:
+        template_path: hooks/cluster/sdk_read_one_pre_build_request.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:
@@ -258,6 +266,10 @@ resources:
         late_initialize:
           skip_incomplete_check: {}
     hooks:
+      pre_populate_resource_from_annotation:
+        template_path: hooks/serverless_cluster/pre_populate_resource_from_annotation.go.tpl
+      sdk_read_one_pre_build_request:
+        template_path: hooks/serverless_cluster/sdk_read_one_pre_build_request.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/serverless_cluster/sdk_read_one_post_set_output.go.tpl
       sdk_create_post_set_output:

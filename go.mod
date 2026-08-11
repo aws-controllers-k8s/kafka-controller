@@ -6,7 +6,6 @@ require (
 	github.com/aws-controllers-k8s/ec2-controller v1.9.2
 	github.com/aws-controllers-k8s/runtime v0.62.0
 	github.com/aws-controllers-k8s/secretsmanager-controller v0.0.7
-	github.com/aws/aws-sdk-go v1.49.0
 	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.49.2
 	github.com/aws/smithy-go v1.24.2
@@ -19,6 +18,7 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go v1.49.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.28.6 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.47 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.21 // indirect

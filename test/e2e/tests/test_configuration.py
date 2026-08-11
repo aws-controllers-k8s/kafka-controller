@@ -63,6 +63,58 @@ def simple_config():
         pass
 
 @pytest.fixture(scope="module")
+def adoption_by_name_config():
+    resource_name = random_suffix_name("my-config", 24)
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["CONFIG_NAME"] = resource_name
+    replacements["DELETION_POLICY"] = "retain"
+
+    resource_data = load_resource(
+        "configuration_simple", additional_replacements=replacements
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        CONFIG_RESOURCE_PLURAL,
+        resource_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+    assert cr is not None
+
+    try:
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_SECONDS,
+        )
+        cr = k8s.get_resource(ref)
+        arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        _, deleted = k8s.delete_custom_resource(ref, 3, 10)
+        assert deleted
+
+        replacements["ADOPTION_FIELDS"] = f'{{\\\"name\\\": \\\"{resource_name}\\\"}}'
+        resource_data = load_resource(
+            "configuration_adopt", additional_replacements=replacements
+        )
+
+        k8s.create_custom_resource(ref, resource_data)
+        cr = k8s.wait_resource_consumed_by_controller(ref)
+        assert cr is not None
+
+        yield (ref, cr, arn)
+    finally:
+        try:
+            k8s.delete_custom_resource(ref, DELETE_WAIT_SECONDS)
+        except:
+            pass
+
+
+@pytest.fixture(scope="module")
 def adoption_config():
     resource_name = random_suffix_name("my-config", 24)
     replacements = REPLACEMENT_VALUES.copy()
@@ -174,3 +226,20 @@ class TestConfiguration:
         assert "spec" in cr
         assert "serverProperties" in cr["spec"]
 
+
+    def test_adopt_by_name(self, adoption_by_name_config):
+        ref, _, arn = adoption_by_name_config
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_SECONDS,
+        )
+
+        cr = k8s.get_resource(ref)
+        assert cr["status"]["ackResourceMetadata"]["arn"] == arn
+        assert cr["spec"]["serverProperties"] is not None
+
+        latest = get_by_arn(arn)
+        assert latest is not None
+        assert latest["Name"] == cr["spec"]["name"]

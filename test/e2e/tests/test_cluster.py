@@ -251,6 +251,50 @@ class TestCluster:
             actual=latest_tags,
         )
 
+        cluster_name = cr["spec"]["name"]
+        adopt_cr_name = random_suffix_name("ack-adopt-name", 24)
+        replacements = REPLACEMENT_VALUES.copy()
+        replacements["ADOPT_CR_NAME"] = adopt_cr_name
+        replacements["CLUSTER_NAME"] = cluster_name
+        replacements["ADOPTION_FIELDS"] = f'{{\\"name\\": \\"{cluster_name}\\"}}'
+
+        adopt_ref = k8s.CustomResourceReference(
+            CRD_GROUP,
+            CRD_VERSION,
+            CLUSTER_RESOURCE_PLURAL,
+            adopt_cr_name,
+            namespace="default",
+        )
+        k8s.create_custom_resource(
+            adopt_ref,
+            load_resource(
+                "cluster_adopt_by_name",
+                additional_replacements=replacements,
+            ),
+        )
+
+        try:
+            assert k8s.wait_resource_consumed_by_controller(adopt_ref) is not None
+            assert k8s.wait_on_condition(
+                adopt_ref,
+                "ACK.ResourceSynced",
+                "True",
+                wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+            )
+
+            adopted = k8s.get_resource(adopt_ref)
+            assert adopted["status"]["ackResourceMetadata"]["arn"] == cluster_arn
+            assert adopted["spec"]["name"] == cluster_name
+            assert adopted["status"]["state"] == "ACTIVE"
+        finally:
+            k8s.delete_custom_resource(
+                adopt_ref,
+                period_length=DELETE_WAIT_SECONDS,
+            )
+
+        assert cluster.get_by_arn(cluster_arn) is not None
+        condition.assert_synced(ref)
+
 
 @pytest.fixture(scope="module")
 def update_cluster():
