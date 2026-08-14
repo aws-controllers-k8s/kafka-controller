@@ -31,4 +31,10 @@
 		if err != nil {
 			return nil, err
 		}
+		// Cluster resource policies are managed via a separate side-API
+		// (GetClusterPolicy). A NotFoundException simply means no policy is
+		// attached and must not surface as a ReadOne 404 for the Cluster.
+		if err = rm.setClusterPolicy(ctx, ko); err != nil {
+			return nil, err
+		}
 	}

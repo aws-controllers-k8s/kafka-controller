@@ -826,6 +826,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = new(OpenMonitoringInfo)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Policy != nil {
+		in, out := &in.Policy, &out.Policy
+		*out = new(string)
+		**out = **in
+	}
 	if in.Rebalancing != nil {
 		in, out := &in.Rebalancing, &out.Rebalancing
 		*out = new(Rebalancing)
@@ -2569,6 +2574,11 @@ func (in *ServerlessClusterSpec) DeepCopyInto(out *ServerlessClusterSpec) {
 	}
 	if in.Name != nil {
 		in, out := &in.Name, &out.Name
+		*out = new(string)
+		**out = **in
+	}
+	if in.Policy != nil {
+		in, out := &in.Policy, &out.Policy
 		*out = new(string)
 		**out = **in
 	}

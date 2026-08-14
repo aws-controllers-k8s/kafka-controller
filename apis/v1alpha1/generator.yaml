@@ -56,6 +56,15 @@ resources:
       terminal_codes:
         - BadRequestException
     fields:
+      # Policy is a JSON IAM-style cluster resource policy document managed via
+      # the GetClusterPolicy/PutClusterPolicy/DeleteClusterPolicy APIs, which
+      # are outside the normal Create/Describe/Update lifecycle. Custom hooks
+      # read and reconcile this field.
+      Policy:
+        from:
+          operation: GetClusterPolicy
+          path: Policy
+        is_iam_policy: true
       Rebalancing:
         late_initialize:
           skip_incomplete_check: {}
@@ -136,7 +145,19 @@ resources:
           output_fields:
             ClusterName: Name
             ClusterType: Type
+    exceptions:
+      terminal_codes:
+        - BadRequestException
     fields:
+      # Policy is a JSON IAM-style cluster resource policy document managed via
+      # the GetClusterPolicy/PutClusterPolicy/DeleteClusterPolicy APIs, which
+      # are outside the normal Create/Describe/Update lifecycle. Custom hooks
+      # read and reconcile this field.
+      Policy:
+        from:
+          operation: GetClusterPolicy
+          path: Policy
+        is_iam_policy: true
       AssociatedScramSecrets:
         type: "[]*string"
         references:

@@ -13,11 +13,13 @@
 
 """Integration tests for the MSK ServerlessCluster resource"""
 
+import json
 import logging
 import time
 
 import pytest
 
+from acktest.aws.identity import get_account_id, get_region
 from acktest.k8s import condition
 from acktest.k8s import resource as k8s
 from acktest.resources import random_suffix_name
@@ -27,6 +29,23 @@ from e2e.bootstrap_resources import get_bootstrap_resources
 from e2e.common.types import SERVERLESSCLUSTER_RESOURCE_PLURAL
 from e2e.replacement_values import REPLACEMENT_VALUES
 from e2e import serverlesscluster
+
+
+def _cluster_policy_doc(principal_arn: str, actions) -> dict:
+    """Builds a valid MSK cluster resource policy document granting the
+    supplied principal the supplied kafka actions on the cluster."""
+    return {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": principal_arn},
+                "Action": actions,
+                "Resource": "*",
+            }
+        ],
+    }
+
 
 CREATE_WAIT_AFTER_SECONDS = 180
 DELETE_WAIT_SECONDS = 300
@@ -776,3 +795,153 @@ class TestExpressProvisionedCluster:
         # Verify via AWS API
         aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
         assert aws_cluster["Provisioned"]["Rebalancing"]["Status"] == "ACTIVE"
+
+
+@pytest.fixture(scope="module")
+def policy_serverless_cluster():
+    cluster_name = random_suffix_name("ack-srvls-policy", 24)
+
+    resources = get_bootstrap_resources()
+    # Serverless MSK (and its multi-VPC connectivity) requires a VPC with DNS
+    # hostnames enabled, so use the DNS-hostnames-enabled VpcConnectionVPC.
+    vpc = resources.VpcConnectionVPC
+    subnet_id_1 = vpc.public_subnets.subnet_ids[0]
+    subnet_id_2 = vpc.public_subnets.subnet_ids[1]
+
+    replacements = REPLACEMENT_VALUES.copy()
+    replacements["SERVERLESS_CLUSTER_NAME"] = cluster_name
+    replacements["SUBNET_ID_1"] = subnet_id_1
+    replacements["SUBNET_ID_2"] = subnet_id_2
+
+    resource_data = load_resource(
+        "serverlesscluster_policy",
+        additional_replacements=replacements,
+    )
+
+    ref = k8s.CustomResourceReference(
+        CRD_GROUP,
+        CRD_VERSION,
+        SERVERLESSCLUSTER_RESOURCE_PLURAL,
+        cluster_name,
+        namespace="default",
+    )
+    k8s.create_custom_resource(ref, resource_data)
+    cr = k8s.wait_resource_consumed_by_controller(ref)
+
+    assert cr is not None
+    assert k8s.get_resource_exists(ref)
+
+    yield (ref, cr)
+
+    _, deleted = k8s.delete_custom_resource(
+        ref,
+        period_length=DELETE_WAIT_SECONDS,
+    )
+    assert deleted
+    serverlesscluster.wait_until_deleted(cluster_name)
+
+
+@service_marker
+@pytest.mark.canary
+class TestServerlessClusterPolicy:
+    """Verifies the ServerlessCluster resource policy lifecycle managed via the
+    GetClusterPolicy/PutClusterPolicy/DeleteClusterPolicy side APIs.
+    """
+
+    def test_cluster_policy_lifecycle(self, policy_serverless_cluster):
+        ref, _ = policy_serverless_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        cr = k8s.get_resource(ref)
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+        )
+
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
+        # No policy is attached at creation time.
+        assert serverlesscluster.get_cluster_policy(cluster_arn) is None
+
+        # The policy principal is the CI account root, which always exists.
+        account_id = get_account_id()
+        principal_arn = f"arn:aws:iam::{account_id}:root"
+
+        # Attach a policy via spec.policy and confirm it is applied.
+        policy_doc = _cluster_policy_doc(
+            principal_arn,
+            ["kafka:CreateVpcConnection", "kafka:GetBootstrapBrokers"],
+        )
+        updates = {"spec": {"policy": json.dumps(policy_doc)}}
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        aws_policy = serverlesscluster.get_cluster_policy(cluster_arn)
+        assert aws_policy is not None
+        assert json.loads(aws_policy) == policy_doc
+
+        # Confirm the resource does not perpetually diff: it stays Synced=True
+        # across subsequent reconciles even though key ordering/whitespace of
+        # the stored document may differ from the desired document.
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )
+
+        # Modify the policy (validates policy version threading in the Put).
+        modified_doc = _cluster_policy_doc(
+            principal_arn,
+            "kafka:GetBootstrapBrokers",
+        )
+        updates = {"spec": {"policy": json.dumps(modified_doc)}}
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        aws_policy = serverlesscluster.get_cluster_policy(cluster_arn)
+        assert aws_policy is not None
+        assert json.loads(aws_policy) == modified_doc
+
+        # Remove the policy (validates DeleteClusterPolicy path).
+        updates = {"spec": {"policy": None}}
+        k8s.patch_custom_resource(ref, updates)
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_UPDATE_WAIT,
+        )
+
+        # GetClusterPolicy now returns NotFound.
+        assert serverlesscluster.get_cluster_policy(cluster_arn) is None
+
+        # The resource stays Synced=True with no perpetual diff after deletion.
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=MODIFY_WAIT_AFTER_SECONDS,
+        )

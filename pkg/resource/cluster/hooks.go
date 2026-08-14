@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	svcsdk "github.com/aws/aws-sdk-go-v2/service/kafka"
 	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/kafka/types"
+	smithy "github.com/aws/smithy-go"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -160,6 +161,15 @@ func (rm *resourceManager) customUpdate(
 	}
 
 	switch {
+	case delta.DifferentAt("Spec.Policy"):
+		// Pass updatedRes (the object customUpdate returns) so the synced
+		// condition set inside syncClusterPolicy lands on the returned
+		// resource, matching the Spec.AssociatedSCRAMSecrets branch below.
+		if err = rm.syncClusterPolicy(ctx, updatedRes, latest); err != nil {
+			return updatedRes, err
+		}
+		return updatedRes, requeueAfterAsyncUpdate()
+
 	case delta.DifferentAt("Spec.Tags"):
 		if err = sync.Tags(
 			ctx,
@@ -828,6 +838,112 @@ func (rm *resourceManager) setBootstrapBrokerStringInformations(ctx context.Cont
 	r.Status.BootstrapBrokerStringVPCConnectivitySASLIAM = output.BootstrapBrokerStringVpcConnectivitySaslIam
 	r.Status.BootstrapBrokerStringVPCConnectivitySASLSCRAM = output.BootstrapBrokerStringVpcConnectivitySaslScram
 	r.Status.BootstrapBrokerStringVPCConnectivityTLS = output.BootstrapBrokerStringVpcConnectivityTls
+	return nil
+}
+
+// setClusterPolicy fetches the cluster resource policy via GetClusterPolicy
+// and sets ko.Spec.Policy accordingly. A NotFoundException means no policy is
+// currently attached, in which case Spec.Policy is set to nil and the error is
+// swallowed (it must not surface as a ReadOne 404 for the Cluster).
+func (rm *resourceManager) setClusterPolicy(
+	ctx context.Context,
+	ko *svcapitypes.Cluster,
+) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.setClusterPolicy")
+	defer func() { exit(err) }()
+
+	resp, err := rm.sdkapi.GetClusterPolicy(ctx, &svcsdk.GetClusterPolicyInput{
+		ClusterArn: (*string)(ko.Status.ACKResourceMetadata.ARN),
+	})
+	rm.metrics.RecordAPICall("GET", "GetClusterPolicy", err)
+	if err != nil {
+		if isClusterPolicyNotFound(err) {
+			ko.Spec.Policy = nil
+			return nil
+		}
+		return err
+	}
+	ko.Spec.Policy = resp.Policy
+	return nil
+}
+
+// isClusterPolicyNotFound returns true when the supplied error is a MSK
+// NotFoundException, which GetClusterPolicy returns when no policy is attached.
+func isClusterPolicyNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	var awsErr smithy.APIError
+	if errors.As(err, &awsErr) {
+		return awsErr.ErrorCode() == "NotFoundException"
+	}
+	return false
+}
+
+// syncClusterPolicy reconciles the cluster resource policy with the desired
+// state using the GetClusterPolicy/PutClusterPolicy/DeleteClusterPolicy side
+// APIs. The policy version is fetched fresh via GetClusterPolicy immediately
+// before the Put so the (policy-specific) CurrentVersion is threaded correctly.
+// Note: the policy CurrentVersion is distinct from Status.CurrentVersion (the
+// cluster version used by the UpdateBroker* APIs).
+func (rm *resourceManager) syncClusterPolicy(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.syncClusterPolicy")
+	defer func() { exit(err) }()
+
+	clusterARN := (*string)(latest.ko.Status.ACKResourceMetadata.ARN)
+
+	// Fetch the current policy and its version. A NotFoundException means no
+	// policy currently exists, in which case the version is nil (required on
+	// first creation).
+	var currentVersion *string
+	policyExists := false
+	getResp, err := rm.sdkapi.GetClusterPolicy(ctx, &svcsdk.GetClusterPolicyInput{
+		ClusterArn: clusterARN,
+	})
+	rm.metrics.RecordAPICall("GET", "GetClusterPolicy", err)
+	if err != nil {
+		if !isClusterPolicyNotFound(err) {
+			return err
+		}
+	} else {
+		currentVersion = getResp.CurrentVersion
+		policyExists = getResp.Policy != nil
+	}
+
+	desiredPolicy := desired.ko.Spec.Policy
+	if desiredPolicy != nil && strings.TrimSpace(*desiredPolicy) != "" {
+		_, err = rm.sdkapi.PutClusterPolicy(ctx, &svcsdk.PutClusterPolicyInput{
+			ClusterArn:     clusterARN,
+			Policy:         desiredPolicy,
+			CurrentVersion: currentVersion,
+		})
+		rm.metrics.RecordAPICall("UPDATE", "PutClusterPolicy", err)
+		if err != nil {
+			return err
+		}
+		message := "kafka is updating cluster policy"
+		ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+		return nil
+	}
+
+	// Desired policy is empty; delete any existing policy.
+	if policyExists {
+		_, err = rm.sdkapi.DeleteClusterPolicy(ctx, &svcsdk.DeleteClusterPolicyInput{
+			ClusterArn: clusterARN,
+		})
+		rm.metrics.RecordAPICall("DELETE", "DeleteClusterPolicy", err)
+		if err != nil {
+			return err
+		}
+		message := "kafka is deleting cluster policy"
+		ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	}
 	return nil
 }
 

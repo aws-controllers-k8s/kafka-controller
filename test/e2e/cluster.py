@@ -200,3 +200,18 @@ def get_tags(cluster_arn):
         return resp["Tags"]
     except c.exceptions.NotFoundException:
         return None
+
+
+def get_cluster_policy(cluster_arn):
+    """Returns the cluster resource policy document (a JSON string) attached to
+    the supplied Cluster.
+
+    If no policy is attached (GetClusterPolicy raises NotFoundException),
+    returns None.
+    """
+    c = boto3.client("kafka")
+    try:
+        resp = c.get_cluster_policy(ClusterArn=cluster_arn)
+        return resp.get("Policy")
+    except c.exceptions.NotFoundException:
+        return None
