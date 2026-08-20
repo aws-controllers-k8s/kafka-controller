@@ -1,0 +1,13 @@
+apiVersion: kafka.services.k8s.aws/v1alpha1
+kind: Cluster
+metadata:
+  name: $ADOPT_CR_NAME
+  annotations:
+    services.k8s.aws/adoption-policy: adopt
+    services.k8s.aws/adoption-fields: "$ADOPTION_FIELDS"
+    services.k8s.aws/read-only: "true"
+spec:
+  name: $CLUSTER_NAME
+  brokerNodeGroupInfo: {}
+  kafkaVersion: "3.9.x"
+  numberOfBrokerNodes: 2
