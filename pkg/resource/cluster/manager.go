@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=clusters/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{"Rebalancing"}
+var lateInitializeFieldNames = []string{"BrokerNodeGroupInfo", "ConnectivityInfo", "VPCConnectivity", "ClientAuthentication", "SASL", "IAM", "Enabled", "SCRAM", "Enabled", "TLS", "Enabled", "Rebalancing"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -262,6 +262,121 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 ) acktypes.AWSResource {
 	observedKo := rm.concreteResource(observed).ko.DeepCopy()
 	latestKo := rm.concreteResource(latest).ko.DeepCopy()
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo == nil {
+		latestKo.Spec.BrokerNodeGroupInfo = observedKo.Spec.BrokerNodeGroupInfo
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo == nil {
+			latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity == nil {
+				latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication == nil {
+					latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL == nil {
+						latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+						if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM == nil {
+							latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM
+						}
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+						if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM != nil {
+							if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled == nil {
+								latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+						if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM == nil {
+							latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM
+						}
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL != nil {
+						if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM != nil {
+							if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled == nil {
+								latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS == nil {
+						latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS
+					}
+				}
+			}
+		}
+	}
+	if observedKo.Spec.BrokerNodeGroupInfo != nil && latestKo.Spec.BrokerNodeGroupInfo != nil {
+		if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
+			if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity != nil {
+				if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication != nil {
+					if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS != nil {
+						if observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled != nil && latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled == nil {
+							latestKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled = observedKo.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled
+						}
+					}
+				}
+			}
+		}
+	}
 	if observedKo.Spec.Rebalancing != nil && latestKo.Spec.Rebalancing == nil {
 		latestKo.Spec.Rebalancing = observedKo.Spec.Rebalancing
 	}

@@ -997,17 +997,14 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		if a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType == nil && b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType != nil {
 			a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType = b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.NetworkType
 		}
-		// MSK's DescribeCluster API returns VpcConnectivity with explicit
-		// {enabled: false} structs when VPC connectivity auth is disabled, while
-		// users typically omit the block (nil). Normalize to prevent spurious
-		// diffs. A genuine enabled:true still produces a delta so the
-		// UpdateConnectivity enable path fires after the cluster is ACTIVE.
+		// The nil-desired direction is handled declaratively by late_initialize on
+		// the VPCConnectivity subtree. Only the inverse remains: AWS omits the
+		// block entirely on clusters where every auth mechanism is disabled, which
+		// is semantically equal to the user's explicit all-disabled spec.
 		if b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo != nil {
 			aVPC := a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
 			bVPC := b.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity
-			if aVPC == nil {
-				a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = bVPC
-			} else if bVPC == nil && vpcConnectivityDisabled(aVPC) {
+			if aVPC != nil && bVPC == nil && vpcConnectivityDisabled(aVPC) {
 				a.ko.Spec.BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity = nil
 			}
 		}

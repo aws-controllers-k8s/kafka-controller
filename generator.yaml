@@ -97,6 +97,40 @@ resources:
           path: Status.ID
       BrokerNodeGroupInfo.ConnectivityInfo.PublicAccess.Type:
         go_tag: json:"type,omitempty"
+      # MSK returns the VpcConnectivity client-auth subtree fully populated with {enabled: false} defaults; late_initialize fills only the node it is keyed on, so every level needs its own entry.
+      BrokerNodeGroupInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.IAM.Enabled:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.SASL.SCRAM.Enabled:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS:
+        late_initialize:
+          skip_incomplete_check: {}
+      BrokerNodeGroupInfo.ConnectivityInfo.VPCConnectivity.ClientAuthentication.TLS.Enabled:
+        late_initialize:
+          skip_incomplete_check: {}
       ZookeeperConnectString:
         type: string
         is_read_only: true
