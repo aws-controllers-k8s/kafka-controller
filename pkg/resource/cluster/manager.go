@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kafka.services.k8s.aws,resources=clusters/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{"Rebalancing"}
+var lateInitializeFieldNames = []string{"Rebalancing", "StorageMode"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -264,6 +264,9 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 	latestKo := rm.concreteResource(latest).ko.DeepCopy()
 	if observedKo.Spec.Rebalancing != nil && latestKo.Spec.Rebalancing == nil {
 		latestKo.Spec.Rebalancing = observedKo.Spec.Rebalancing
+	}
+	if observedKo.Spec.StorageMode != nil && latestKo.Spec.StorageMode == nil {
+		latestKo.Spec.StorageMode = observedKo.Spec.StorageMode
 	}
 	return &resource{latestKo}
 }
