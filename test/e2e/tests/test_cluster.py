@@ -483,6 +483,48 @@ class TestClusterUpdate:
             except Exception:
                 pass
 
+    def test_update_storage_mode_unsupported_broker_is_terminal(self, update_cluster):
+        ref, _ = update_cluster
+
+        cr = k8s.get_resource(ref)
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+        assert cr["spec"]["brokerNodeGroupInfo"]["instanceType"] == "kafka.t3.small"
+
+        try:
+            k8s.patch_custom_resource(ref, {"spec": {"storageMode": "TIERED"}})
+            time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+
+            assert k8s.wait_on_condition(
+                ref,
+                condition.CONDITION_TYPE_TERMINAL,
+                "True",
+                wait_periods=10,
+            )
+
+            terminal = k8s.get_resource_condition(ref, condition.CONDITION_TYPE_TERMINAL)
+            assert terminal["message"] is not None
+
+            aws_cluster = cluster.get_by_arn(cluster_arn)
+            assert aws_cluster.get("StorageMode") != "TIERED"
+        finally:
+            k8s.patch_custom_resource(ref, {"spec": {"storageMode": "LOCAL"}})
+            time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
 
 @pytest.fixture(scope="module")
 def scram_external_cluster():
