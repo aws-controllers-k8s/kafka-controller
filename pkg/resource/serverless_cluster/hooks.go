@@ -197,6 +197,9 @@ func (rm *resourceManager) customUpdate(
 	case delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize"):
 		return rm.updateBrokerStorage(ctx, updatedRes, latest)
 
+	case delta.DifferentAt("Spec.Provisioned.StorageMode"):
+		return rm.updateStorageMode(ctx, updatedRes, latest)
+
 	case delta.DifferentAt("Spec.Provisioned.BrokerNodeGroupInfo.InstanceType"):
 		return rm.updateBrokerType(ctx, updatedRes, latest)
 
@@ -570,6 +573,41 @@ func (rm *resourceManager) updateBrokerStorage(
 	message := "kafka is updating broker storage"
 	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
 	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateStorageMode updates the storage mode of the kafka cluster.
+func (rm *resourceManager) updateStorageMode(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateStorageMode")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateStorageInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if mode := getStorageMode(desired.ko.Spec.Provisioned); mode != nil {
+		input.StorageMode = svcsdktypes.StorageMode(*mode)
+	}
+
+	_, err = rm.sdkapi.UpdateStorage(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateStorage", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating storage mode"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
+func getStorageMode(provisioned *svcapitypes.ProvisionedRequest) *string {
+	if provisioned == nil {
+		return nil
+	}
+	return provisioned.StorageMode
 }
 
 func getVolumeSize(provisioned *svcapitypes.ProvisionedRequest) *int32 {
@@ -1053,6 +1091,10 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		}
 		if a.ko.Spec.Provisioned.OpenMonitoring == nil {
 			a.ko.Spec.Provisioned.OpenMonitoring = b.ko.Spec.Provisioned.OpenMonitoring
+		}
+		// Adopt the observed storage mode so an unset field is not read as a change.
+		if a.ko.Spec.Provisioned.StorageMode == nil {
+			a.ko.Spec.Provisioned.StorageMode = b.ko.Spec.Provisioned.StorageMode
 		}
 	}
 

@@ -206,6 +206,9 @@ func (rm *resourceManager) customUpdate(
 	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize"):
 		return rm.updateBrokerStorage(ctx, updatedRes, latest)
 
+	case delta.DifferentAt("Spec.StorageMode"):
+		return rm.updateStorageMode(ctx, updatedRes, latest)
+
 	case delta.DifferentAt("Spec.BrokerNodeGroupInfo.InstanceType"):
 		return rm.updateBrokerType(ctx, desired, latest)
 
@@ -546,6 +549,34 @@ func (rm *resourceManager) updateBrokerStorage(
 		return nil, err
 	}
 	message := "kafka is updating broker storage"
+	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
+	return desired, requeueAfterAsyncUpdate()
+}
+
+// updateStorageMode updates the storage mode of the kafka cluster.
+func (rm *resourceManager) updateStorageMode(
+	ctx context.Context,
+	desired *resource,
+	latest *resource,
+) (updatedRes *resource, err error) {
+	rlog := ackrtlog.FromContext(ctx)
+	exit := rlog.Trace("rm.updateStorageMode")
+	defer func() { exit(err) }()
+
+	input := &svcsdk.UpdateStorageInput{
+		ClusterArn:     (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
+		CurrentVersion: latest.ko.Status.CurrentVersion,
+	}
+	if desired.ko.Spec.StorageMode != nil {
+		input.StorageMode = svcsdktypes.StorageMode(*desired.ko.Spec.StorageMode)
+	}
+
+	_, err = rm.sdkapi.UpdateStorage(ctx, input)
+	rm.metrics.RecordAPICall("UPDATE", "UpdateStorage", err)
+	if err != nil {
+		return nil, err
+	}
+	message := "kafka is updating storage mode"
 	ackcondition.SetSynced(desired, corev1.ConditionFalse, &message, nil)
 	return desired, requeueAfterAsyncUpdate()
 }
@@ -1062,8 +1093,9 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	if a.ko.Spec.OpenMonitoring == nil {
 		a.ko.Spec.OpenMonitoring = b.ko.Spec.OpenMonitoring
 	}
-	if a.ko.Spec.StorageMode == nil {
-		a.ko.Spec.StorageMode = aws.String(string(svcsdktypes.StorageModeLocal))
+	// Adopt the observed storage mode so an unset field is not read as a change.
+	if a.ko.Spec.StorageMode == nil && b.ko.Spec.StorageMode != nil {
+		a.ko.Spec.StorageMode = b.ko.Spec.StorageMode
 	}
 	if a.ko.Spec.Rebalancing == nil && b.ko.Spec.Rebalancing != nil {
 		a.ko.Spec.Rebalancing = b.ko.Spec.Rebalancing
