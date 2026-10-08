@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/aws-controllers-k8s/ec2-controller v1.21.0
-	github.com/aws-controllers-k8s/runtime v0.64.0
+	github.com/aws-controllers-k8s/runtime v0.65.0
 	github.com/aws-controllers-k8s/secretsmanager-controller v1.6.1
 	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.49.2
