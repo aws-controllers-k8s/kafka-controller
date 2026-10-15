@@ -65,7 +65,7 @@ VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS = 60 * 90
 
 @pytest.fixture(scope="module")
 def simple_provisioned_cluster():
-    cluster_name = random_suffix_name("my-provisioned-cluster", 24)
+    cluster_name = random_suffix_name("my-provisioned-cluster", 32)
 
     resources = get_bootstrap_resources()
     vpc = resources.ClusterVPC
