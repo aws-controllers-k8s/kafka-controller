@@ -111,7 +111,7 @@ def simple_provisioned_cluster():
 
 @pytest.fixture(scope="module")
 def simple_serverless_cluster():
-    cluster_name = random_suffix_name("my-serverless-cluster", 24)
+    cluster_name = random_suffix_name("my-serverless-cluster", 32)
 
     resources = get_bootstrap_resources()
     vpc = resources.ClusterVPC
@@ -702,6 +702,27 @@ class TestProvisionedClusterVPCConnectivity:
         assert (
             vpc_connectivity["ClientAuthentication"]["Sasl"]["Iam"]["Enabled"] is True
         )
+
+        k8s.patch_custom_resource(
+            ref, {"spec": {"provisioned": {"storageMode": "TIERED"}}}
+        )
+        time.sleep(MODIFY_WAIT_AFTER_SECONDS)
+        condition.assert_not_synced(ref)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            period_length=POLL_INTERVAL_SECONDS,
+        )
+        serverlesscluster.wait_until(
+            cluster_arn,
+            serverlesscluster.state_matches("ACTIVE"),
+            timeout_seconds=LONG_ASYNC_UPDATE_WAIT,
+        )
+        aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
+        assert aws_cluster["Provisioned"]["StorageMode"] == "TIERED"
 
 
 @pytest.fixture(scope="module")
