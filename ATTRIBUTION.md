@@ -1918,8 +1918,6 @@ License Identifier: Apache-2.0
 
 License Identifier: Apache-2.0
 
-
-
 ### github.com/aws/aws-sdk-go-v2
 
 License Identifier: Apache-2.0
