@@ -414,6 +414,74 @@ class TestClusterUpdate:
         assert cr["spec"]["loggingInfo"]["brokerLogs"]["s3"]["enabled"] is True
         assert cr["spec"]["loggingInfo"]["brokerLogs"]["s3"]["bucket"] == bucket_name
 
+    def test_update_authorizer_logs(self, update_cluster):
+        ref, _ = update_cluster
+
+        time.sleep(CREATE_WAIT_AFTER_SECONDS)
+
+        cr = k8s.get_resource(ref)
+        assert "status" in cr
+        assert "ackResourceMetadata" in cr["status"]
+        assert "arn" in cr["status"]["ackResourceMetadata"]
+        cluster_arn = cr["status"]["ackResourceMetadata"]["arn"]
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        time.sleep(CHECK_STATUS_WAIT_SECONDS)
+        condition.assert_synced(ref)
+
+        resources = get_bootstrap_resources()
+        bucket_name = resources.LogBucket.name
+
+        updates = {
+            "spec": {
+                "loggingInfo": {
+                    "authorizerLogs": {
+                        "s3": {
+                            "enabled": True,
+                            "bucket": bucket_name,
+                            "prefix": "msk-authorizer-logs",
+                        },
+                    },
+                },
+            },
+        }
+        k8s.patch_custom_resource(ref, updates)
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "False",
+            wait_periods=ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            period_length=POLL_INTERVAL_SECONDS,
+        )
+
+        assert k8s.wait_on_condition(
+            ref,
+            "ACK.ResourceSynced",
+            "True",
+            wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            period_length=POLL_INTERVAL_SECONDS,
+        )
+
+        cluster.wait_until(
+            cluster_arn,
+            cluster.state_matches("ACTIVE"),
+        )
+
+        aws_cluster = cluster.get_by_arn(cluster_arn)
+        assert aws_cluster is not None
+        assert aws_cluster["LoggingInfo"]["AuthorizerLogs"]["S3"]["Enabled"] is True
+        assert aws_cluster["LoggingInfo"]["AuthorizerLogs"]["S3"]["Bucket"] == bucket_name
+        assert aws_cluster["LoggingInfo"]["AuthorizerLogs"]["S3"]["Prefix"] == "msk-authorizer-logs"
+
+        cr = k8s.get_resource(ref)
+        assert cr["spec"]["loggingInfo"]["authorizerLogs"]["s3"]["enabled"] is True
+        assert cr["spec"]["loggingInfo"]["authorizerLogs"]["s3"]["bucket"] == bucket_name
+
     def test_update_cluster_configuration(self, update_cluster, kafka_client):
         ref, _ = update_cluster
 
