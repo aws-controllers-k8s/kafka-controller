@@ -290,6 +290,34 @@ spec:
                     type: string
                   loggingInfo:
                     properties:
+                      authorizerLogs:
+                        description: The authorizer logs configuration for this MSK
+                          cluster.
+                        properties:
+                          cloudWatchLogs:
+                            properties:
+                              enabled:
+                                type: boolean
+                              logGroup:
+                                type: string
+                            type: object
+                          firehose:
+                            properties:
+                              deliveryStream:
+                                type: string
+                              enabled:
+                                type: boolean
+                            type: object
+                          s3:
+                            properties:
+                              bucket:
+                                type: string
+                              enabled:
+                                type: boolean
+                              prefix:
+                                type: string
+                            type: object
+                        type: object
                       brokerLogs:
                         properties:
                           cloudWatchLogs:

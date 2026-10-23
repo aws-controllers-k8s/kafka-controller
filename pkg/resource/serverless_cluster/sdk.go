@@ -287,42 +287,79 @@ func (rm *resourceManager) sdkFind(
 		}
 		if resp.ClusterInfo.Provisioned.LoggingInfo != nil {
 			f6f6 := &svcapitypes.LoggingInfo{}
-			if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs != nil {
-				f6f6f0 := &svcapitypes.BrokerLogs{}
-				if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
+			if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs != nil {
+				f6f6f0 := &svcapitypes.AuthorizerLogs{}
+				if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs != nil {
 					f6f6f0f0 := &svcapitypes.CloudWatchLogs{}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled != nil {
-						f6f6f0f0.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled != nil {
+						f6f6f0f0.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled
 					}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup != nil {
-						f6f6f0f0.LogGroup = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup != nil {
+						f6f6f0f0.LogGroup = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup
 					}
 					f6f6f0.CloudWatchLogs = f6f6f0f0
 				}
-				if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose != nil {
+				if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.Firehose != nil {
 					f6f6f0f1 := &svcapitypes.Firehose{}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream != nil {
-						f6f6f0f1.DeliveryStream = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream != nil {
+						f6f6f0f1.DeliveryStream = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream
 					}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled != nil {
-						f6f6f0f1.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.Enabled != nil {
+						f6f6f0f1.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.Enabled
 					}
 					f6f6f0.Firehose = f6f6f0f1
 				}
-				if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3 != nil {
+				if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3 != nil {
 					f6f6f0f2 := &svcapitypes.S3{}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket != nil {
-						f6f6f0f2.Bucket = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3.Bucket != nil {
+						f6f6f0f2.Bucket = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3.Bucket
 					}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled != nil {
-						f6f6f0f2.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3.Enabled != nil {
+						f6f6f0f2.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3.Enabled
 					}
-					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix != nil {
-						f6f6f0f2.Prefix = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix
+					if resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3.Prefix != nil {
+						f6f6f0f2.Prefix = resp.ClusterInfo.Provisioned.LoggingInfo.AuthorizerLogs.S3.Prefix
 					}
 					f6f6f0.S3 = f6f6f0f2
 				}
-				f6f6.BrokerLogs = f6f6f0
+				f6f6.AuthorizerLogs = f6f6f0
+			}
+			if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs != nil {
+				f6f6f1 := &svcapitypes.BrokerLogs{}
+				if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
+					f6f6f1f0 := &svcapitypes.CloudWatchLogs{}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled != nil {
+						f6f6f1f0.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
+					}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup != nil {
+						f6f6f1f0.LogGroup = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
+					}
+					f6f6f1.CloudWatchLogs = f6f6f1f0
+				}
+				if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose != nil {
+					f6f6f1f1 := &svcapitypes.Firehose{}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream != nil {
+						f6f6f1f1.DeliveryStream = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
+					}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled != nil {
+						f6f6f1f1.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled
+					}
+					f6f6f1.Firehose = f6f6f1f1
+				}
+				if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3 != nil {
+					f6f6f1f2 := &svcapitypes.S3{}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket != nil {
+						f6f6f1f2.Bucket = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket
+					}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled != nil {
+						f6f6f1f2.Enabled = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled
+					}
+					if resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix != nil {
+						f6f6f1f2.Prefix = resp.ClusterInfo.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix
+					}
+					f6f6f1.S3 = f6f6f1f2
+				}
+				f6f6.BrokerLogs = f6f6f1
 			}
 			f6.LoggingInfo = f6f6
 		}
@@ -763,42 +800,79 @@ func (rm *resourceManager) newCreateRequestPayload(
 		}
 		if r.ko.Spec.Provisioned.LoggingInfo != nil {
 			f1f6 := &svcsdktypes.LoggingInfo{}
-			if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
-				f1f6f0 := &svcsdktypes.BrokerLogs{}
-				if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
+			if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs != nil {
+				f1f6f0 := &svcsdktypes.AuthorizerLogs{}
+				if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs != nil {
 					f1f6f0f0 := &svcsdktypes.CloudWatchLogs{}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled != nil {
-						f1f6f0f0.Enabled = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled != nil {
+						f1f6f0f0.Enabled = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled
 					}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup != nil {
-						f1f6f0f0.LogGroup = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup != nil {
+						f1f6f0f0.LogGroup = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup
 					}
 					f1f6f0.CloudWatchLogs = f1f6f0f0
 				}
-				if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose != nil {
+				if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose != nil {
 					f1f6f0f1 := &svcsdktypes.Firehose{}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream != nil {
-						f1f6f0f1.DeliveryStream = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream != nil {
+						f1f6f0f1.DeliveryStream = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream
 					}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled != nil {
-						f1f6f0f1.Enabled = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.Enabled != nil {
+						f1f6f0f1.Enabled = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.Enabled
 					}
 					f1f6f0.Firehose = f1f6f0f1
 				}
-				if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 != nil {
+				if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3 != nil {
 					f1f6f0f2 := &svcsdktypes.S3{}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket != nil {
-						f1f6f0f2.Bucket = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Bucket != nil {
+						f1f6f0f2.Bucket = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Bucket
 					}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled != nil {
-						f1f6f0f2.Enabled = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Enabled != nil {
+						f1f6f0f2.Enabled = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Enabled
 					}
-					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix != nil {
-						f1f6f0f2.Prefix = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix
+					if r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Prefix != nil {
+						f1f6f0f2.Prefix = r.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Prefix
 					}
 					f1f6f0.S3 = f1f6f0f2
 				}
-				f1f6.BrokerLogs = f1f6f0
+				f1f6.AuthorizerLogs = f1f6f0
+			}
+			if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
+				f1f6f1 := &svcsdktypes.BrokerLogs{}
+				if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs != nil {
+					f1f6f1f0 := &svcsdktypes.CloudWatchLogs{}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled != nil {
+						f1f6f1f0.Enabled = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.Enabled
+					}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup != nil {
+						f1f6f1f0.LogGroup = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs.LogGroup
+					}
+					f1f6f1.CloudWatchLogs = f1f6f1f0
+				}
+				if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose != nil {
+					f1f6f1f1 := &svcsdktypes.Firehose{}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream != nil {
+						f1f6f1f1.DeliveryStream = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.DeliveryStream
+					}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled != nil {
+						f1f6f1f1.Enabled = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose.Enabled
+					}
+					f1f6f1.Firehose = f1f6f1f1
+				}
+				if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 != nil {
+					f1f6f1f2 := &svcsdktypes.S3{}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket != nil {
+						f1f6f1f2.Bucket = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Bucket
+					}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled != nil {
+						f1f6f1f2.Enabled = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Enabled
+					}
+					if r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix != nil {
+						f1f6f1f2.Prefix = r.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3.Prefix
+					}
+					f1f6f1.S3 = f1f6f1f2
+				}
+				f1f6.BrokerLogs = f1f6f1
 			}
 			f1.LoggingInfo = f1f6
 		}

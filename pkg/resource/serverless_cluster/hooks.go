@@ -514,6 +514,29 @@ func (rm *resourceManager) updateMonitoring(
 				}
 				li.BrokerLogs = bl
 			}
+			if desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs != nil {
+				al := &svcsdktypes.AuthorizerLogs{}
+				if desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs != nil {
+					al.CloudWatchLogs = &svcsdktypes.CloudWatchLogs{
+						Enabled:  desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled,
+						LogGroup: desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup,
+					}
+				}
+				if desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose != nil {
+					al.Firehose = &svcsdktypes.Firehose{
+						Enabled:        desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.Enabled,
+						DeliveryStream: desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream,
+					}
+				}
+				if desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3 != nil {
+					al.S3 = &svcsdktypes.S3{
+						Enabled: desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Enabled,
+						Bucket:  desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Bucket,
+						Prefix:  desired.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3.Prefix,
+					}
+				}
+				li.AuthorizerLogs = al
+			}
 			input.LoggingInfo = li
 		}
 		if desired.ko.Spec.Provisioned.OpenMonitoring != nil {
@@ -1054,16 +1077,28 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 			a.ko.Spec.Provisioned.LoggingInfo = b.ko.Spec.Provisioned.LoggingInfo
 		} else if b.ko.Spec.Provisioned.LoggingInfo == nil && loggingDisabled(a.ko.Spec.Provisioned.LoggingInfo) {
 			a.ko.Spec.Provisioned.LoggingInfo = nil
-		} else if a.ko.Spec.Provisioned.LoggingInfo != nil && b.ko.Spec.Provisioned.LoggingInfo != nil &&
-			a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil && b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
-			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs == nil {
-				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs
+		} else if a.ko.Spec.Provisioned.LoggingInfo != nil && b.ko.Spec.Provisioned.LoggingInfo != nil {
+			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil && b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
+				if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs == nil {
+					a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs
+				}
+				if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose == nil {
+					a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose
+				}
+				if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 == nil {
+					a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3
+				}
 			}
-			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose == nil {
-				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose
-			}
-			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 == nil {
-				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3 = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3
+			if a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs != nil && b.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs != nil {
+				if a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs == nil {
+					a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs = b.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.CloudWatchLogs
+				}
+				if a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose == nil {
+					a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose = b.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.Firehose
+				}
+				if a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3 == nil {
+					a.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3 = b.ko.Spec.Provisioned.LoggingInfo.AuthorizerLogs.S3
+				}
 			}
 		}
 		// MSK's DescribeCluster API returns VpcConnectivity with explicit
@@ -1101,20 +1136,33 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 }
 
 func loggingDisabled(li *svcapitypes.LoggingInfo) bool {
-	if li == nil || li.BrokerLogs == nil {
+	if li == nil {
 		return true
 	}
-	bl := li.BrokerLogs
-	if bl.CloudWatchLogs != nil && aws.ToBool(bl.CloudWatchLogs.Enabled) {
+	if bl := li.BrokerLogs; bl != nil && logsGroupEnabled(bl.CloudWatchLogs, bl.Firehose, bl.S3) {
 		return false
 	}
-	if bl.Firehose != nil && aws.ToBool(bl.Firehose.Enabled) {
-		return false
-	}
-	if bl.S3 != nil && aws.ToBool(bl.S3.Enabled) {
+	if al := li.AuthorizerLogs; al != nil && logsGroupEnabled(al.CloudWatchLogs, al.Firehose, al.S3) {
 		return false
 	}
 	return true
+}
+
+// logsGroupEnabled reports whether any destination in a LoggingInfo sub-block
+// (BrokerLogs or AuthorizerLogs, which share the same CloudWatch/Firehose/S3
+// shape) is explicitly enabled. The two blocks are structurally identical, so
+// this helper is parameterized over the fields they have in common.
+func logsGroupEnabled(cw *svcapitypes.CloudWatchLogs, fh *svcapitypes.Firehose, s3 *svcapitypes.S3) bool {
+	if cw != nil && aws.ToBool(cw.Enabled) {
+		return true
+	}
+	if fh != nil && aws.ToBool(fh.Enabled) {
+		return true
+	}
+	if s3 != nil && aws.ToBool(s3.Enabled) {
+		return true
+	}
+	return false
 }
 
 // vpcConnectivityDisabled returns true when every VPC connectivity auth scheme
