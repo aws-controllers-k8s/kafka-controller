@@ -451,13 +451,15 @@ class TestClusterUpdate:
         }
         k8s.patch_custom_resource(ref, updates)
 
-        assert k8s.wait_on_condition(
-            ref,
-            "ACK.ResourceSynced",
-            "False",
-            wait_periods=ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
-            period_length=POLL_INTERVAL_SECONDS,
-        )
+        # Give the controller time to observe the generation bump and begin the
+        # asynchronous UpdateMonitoring call. We intentionally do not assert on
+        # catching a transient ACK.ResourceSynced=False here: the not-synced
+        # window is gated by a short requeue (~15s) while the e2e poll cadence
+        # is 30s, so the transition can complete between polls and is not
+        # reliably observable. We instead assert the cluster converges back to
+        # ACK.ResourceSynced=True and verify the authorizer-log settings were
+        # actually applied via DescribeCluster below.
+        time.sleep(MODIFY_WAIT_AFTER_SECONDS)
 
         assert k8s.wait_on_condition(
             ref,
