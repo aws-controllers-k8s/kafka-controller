@@ -537,6 +537,17 @@ func (rm *resourceManager) updateMonitoring(
 				}
 				li.AuthorizerLogs = al
 			}
+			// MSK's LoggingInfo requires BrokerLogs. When the user configures
+			// only authorizerLogs (no brokerLogs), send an explicit
+			// all-disabled BrokerLogs block so UpdateMonitoring satisfies the
+			// required member.
+			if li.BrokerLogs == nil {
+				li.BrokerLogs = &svcsdktypes.BrokerLogs{
+					CloudWatchLogs: &svcsdktypes.CloudWatchLogs{
+						Enabled: aws.Bool(false),
+					},
+				}
+			}
 			input.LoggingInfo = li
 		}
 		if desired.ko.Spec.Provisioned.OpenMonitoring != nil {
@@ -1078,6 +1089,21 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 		} else if b.ko.Spec.Provisioned.LoggingInfo == nil && loggingDisabled(a.ko.Spec.Provisioned.LoggingInfo) {
 			a.ko.Spec.Provisioned.LoggingInfo = nil
 		} else if a.ko.Spec.Provisioned.LoggingInfo != nil && b.ko.Spec.Provisioned.LoggingInfo != nil {
+			// When the user configures only authorizerLogs, the controller
+			// sends an all-disabled BrokerLogs block on the wire (MSK requires
+			// it), so DescribeCluster returns a disabled BrokerLogs the user
+			// never set. Adopt the observed value so it is not read as a
+			// spurious diff that would re-trigger UpdateMonitoring on every
+			// reconcile.
+			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs == nil &&
+				b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil &&
+				!logsGroupEnabled(
+					b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs,
+					b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.Firehose,
+					b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.S3,
+				) {
+				a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs
+			}
 			if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil && b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs != nil {
 				if a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs == nil {
 					a.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs = b.ko.Spec.Provisioned.LoggingInfo.BrokerLogs.CloudWatchLogs
