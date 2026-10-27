@@ -778,17 +778,25 @@ class TestProvisionedClusterVPCConnectivity:
         time.sleep(MODIFY_WAIT_AFTER_SECONDS)
         condition.assert_not_synced(ref)
 
+        # This storageMode update is applied immediately after the VPC
+        # connectivity reconfiguration above, so MSK serializes it behind the
+        # just-finished UpdateConnectivity and the cluster spends a long stretch
+        # in 'UPDATING' before it settles. Observed end-to-end time for this
+        # stacked update is right at the 40-minute LONG_ASYNC_UPDATE_WAIT
+        # boundary, which makes the wait flaky. Budget the full VPC-connectivity
+        # window (the same timeout used for the connectivity step above) so the
+        # stacked storage update has adequate headroom.
         assert k8s.wait_on_condition(
             ref,
             "ACK.ResourceSynced",
             "True",
-            wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            wait_periods=VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS // POLL_INTERVAL_SECONDS,
             period_length=POLL_INTERVAL_SECONDS,
         )
         serverlesscluster.wait_until(
             cluster_arn,
             serverlesscluster.state_matches("ACTIVE"),
-            timeout_seconds=LONG_ASYNC_UPDATE_WAIT,
+            timeout_seconds=VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS,
         )
         aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
         assert aws_cluster["Provisioned"]["StorageMode"] == "TIERED"
