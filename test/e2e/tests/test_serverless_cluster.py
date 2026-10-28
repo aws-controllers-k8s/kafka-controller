@@ -62,6 +62,9 @@ EXPRESS_WAIT_TIMEOUT_SECONDS = 60 * 60
 # this off as soon as the cluster first reaches ACTIVE, so the wait for it to
 # return to ACTIVE must budget for the full reconfiguration.
 VPC_CONNECTIVITY_UPDATE_TIMEOUT_SECONDS = 60 * 90
+# UpdateStorage can take longer than the generic async-update budget while MSK
+# performs a rolling broker update.
+STORAGE_MODE_UPDATE_TIMEOUT_SECONDS = 60 * 90
 
 @pytest.fixture(scope="module")
 def simple_provisioned_cluster():
@@ -713,13 +716,13 @@ class TestProvisionedClusterVPCConnectivity:
             ref,
             "ACK.ResourceSynced",
             "True",
-            wait_periods=LONG_ASYNC_UPDATE_WAIT // POLL_INTERVAL_SECONDS,
+            wait_periods=STORAGE_MODE_UPDATE_TIMEOUT_SECONDS // POLL_INTERVAL_SECONDS,
             period_length=POLL_INTERVAL_SECONDS,
         )
         serverlesscluster.wait_until(
             cluster_arn,
             serverlesscluster.state_matches("ACTIVE"),
-            timeout_seconds=LONG_ASYNC_UPDATE_WAIT,
+            timeout_seconds=STORAGE_MODE_UPDATE_TIMEOUT_SECONDS,
         )
         aws_cluster = serverlesscluster.get_by_arn(cluster_arn)
         assert aws_cluster["Provisioned"]["StorageMode"] == "TIERED"
