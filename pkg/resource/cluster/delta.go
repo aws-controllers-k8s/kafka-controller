@@ -312,6 +312,71 @@ func newResourceDelta(
 	if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo, b.ko.Spec.LoggingInfo) {
 		delta.Add("Spec.LoggingInfo", a.ko.Spec.LoggingInfo, b.ko.Spec.LoggingInfo)
 	} else if a.ko.Spec.LoggingInfo != nil && b.ko.Spec.LoggingInfo != nil {
+		if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs, b.ko.Spec.LoggingInfo.AuthorizerLogs) {
+			delta.Add("Spec.LoggingInfo.AuthorizerLogs", a.ko.Spec.LoggingInfo.AuthorizerLogs, b.ko.Spec.LoggingInfo.AuthorizerLogs)
+		} else if a.ko.Spec.LoggingInfo.AuthorizerLogs != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs != nil {
+			if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs) {
+				delta.Add("Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs", a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs)
+			} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled", a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled != *b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled", a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled)
+					}
+				}
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup", a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup != *b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup", a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup, b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup)
+					}
+				}
+			}
+			if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose) {
+				delta.Add("Spec.LoggingInfo.AuthorizerLogs.Firehose", a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose)
+			} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream", a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream != *b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream", a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream)
+					}
+				}
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled", a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled != *b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled", a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled)
+					}
+				}
+			}
+			if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.S3, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3) {
+				delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3)
+			} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.S3 != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.S3 != nil {
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3.Bucket", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket != *b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3.Bucket", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket)
+					}
+				}
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3.Enabled", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled != *b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3.Enabled", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled)
+					}
+				}
+				if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix) {
+					delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3.Prefix", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix)
+				} else if a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix != nil {
+					if *a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix != *b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix {
+						delta.Add("Spec.LoggingInfo.AuthorizerLogs.S3.Prefix", a.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix, b.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix)
+					}
+				}
+			}
+		}
 		if ackcompare.HasNilDifference(a.ko.Spec.LoggingInfo.BrokerLogs, b.ko.Spec.LoggingInfo.BrokerLogs) {
 			delta.Add("Spec.LoggingInfo.BrokerLogs", a.ko.Spec.LoggingInfo.BrokerLogs, b.ko.Spec.LoggingInfo.BrokerLogs)
 		} else if a.ko.Spec.LoggingInfo.BrokerLogs != nil && b.ko.Spec.LoggingInfo.BrokerLogs != nil {

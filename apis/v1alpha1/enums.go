@@ -21,6 +21,25 @@ const (
 	BrokerAZDistribution_DEFAULT BrokerAZDistribution = "DEFAULT"
 )
 
+type ChannelDestinationType string
+
+const (
+	ChannelDestinationType_ICEBERG ChannelDestinationType = "ICEBERG"
+	ChannelDestinationType_S3      ChannelDestinationType = "S3"
+)
+
+type ChannelStatus string
+
+const (
+	ChannelStatus_ACTIVE     ChannelStatus = "ACTIVE"
+	ChannelStatus_CREATING   ChannelStatus = "CREATING"
+	ChannelStatus_DELETING   ChannelStatus = "DELETING"
+	ChannelStatus_FAILED     ChannelStatus = "FAILED"
+	ChannelStatus_SUSPENDED  ChannelStatus = "SUSPENDED"
+	ChannelStatus_SUSPENDING ChannelStatus = "SUSPENDING"
+	ChannelStatus_UPDATING   ChannelStatus = "UPDATING"
+)
+
 type ClientBroker string
 
 const (
@@ -57,6 +76,13 @@ const (
 	ConfigurationState_DELETING      ConfigurationState = "DELETING"
 )
 
+type ConsumerGroupOffsetSyncMode string
+
+const (
+	ConsumerGroupOffsetSyncMode_ENHANCED ConsumerGroupOffsetSyncMode = "ENHANCED"
+	ConsumerGroupOffsetSyncMode_LEGACY   ConsumerGroupOffsetSyncMode = "LEGACY"
+)
+
 type CustomerActionStatus string
 
 const (
@@ -72,6 +98,33 @@ const (
 	EnhancedMonitoring_PER_BROKER              EnhancedMonitoring = "PER_BROKER"
 	EnhancedMonitoring_PER_TOPIC_PER_BROKER    EnhancedMonitoring = "PER_TOPIC_PER_BROKER"
 	EnhancedMonitoring_PER_TOPIC_PER_PARTITION EnhancedMonitoring = "PER_TOPIC_PER_PARTITION"
+)
+
+type IcebergCompressionType string
+
+const (
+	IcebergCompressionType_SNAPPY IcebergCompressionType = "SNAPPY"
+	IcebergCompressionType_ZSTD   IcebergCompressionType = "ZSTD"
+)
+
+type JWTSigningAlgorithm string
+
+const (
+	JWTSigningAlgorithm_ES384 JWTSigningAlgorithm = "ES384"
+	JWTSigningAlgorithm_RS256 JWTSigningAlgorithm = "RS256"
+)
+
+type KafkaClusterEncryptionInTransitType string
+
+const (
+	KafkaClusterEncryptionInTransitType_TLS KafkaClusterEncryptionInTransitType = "TLS"
+)
+
+type KafkaClusterSASLSCRAMMechanism string
+
+const (
+	KafkaClusterSASLSCRAMMechanism_SHA256 KafkaClusterSASLSCRAMMechanism = "SHA256"
+	KafkaClusterSASLSCRAMMechanism_SHA512 KafkaClusterSASLSCRAMMechanism = "SHA512"
 )
 
 type KafkaVersionStatus string
@@ -92,6 +145,12 @@ type NodeType string
 
 const (
 	NodeType_BROKER NodeType = "BROKER"
+)
+
+type PartitionStrategy string
+
+const (
+	PartitionStrategy_TIME_HOUR PartitionStrategy = "TIME_HOUR"
 )
 
 type RebalancingStatus string
@@ -125,6 +184,22 @@ const (
 	ReplicatorState_UPDATING ReplicatorState = "UPDATING"
 )
 
+type S3CompressionType string
+
+const (
+	S3CompressionType_GZIP S3CompressionType = "GZIP"
+	S3CompressionType_NONE S3CompressionType = "NONE"
+	S3CompressionType_ZSTD S3CompressionType = "ZSTD"
+)
+
+type S3StorageClass string
+
+const (
+	S3StorageClass_GLACIER_IR          S3StorageClass = "GLACIER_IR"
+	S3StorageClass_INTELLIGENT_TIERING S3StorageClass = "INTELLIGENT_TIERING"
+	S3StorageClass_STANDARD            S3StorageClass = "STANDARD"
+)
+
 type StorageMode string
 
 const (
@@ -140,6 +215,14 @@ const (
 	TargetCompressionType_NONE   TargetCompressionType = "NONE"
 	TargetCompressionType_SNAPPY TargetCompressionType = "SNAPPY"
 	TargetCompressionType_ZSTD   TargetCompressionType = "ZSTD"
+)
+
+type TokenEndpointAuthenticationMethod string
+
+const (
+	TokenEndpointAuthenticationMethod_BASIC TokenEndpointAuthenticationMethod = "BASIC"
+	TokenEndpointAuthenticationMethod_NONE  TokenEndpointAuthenticationMethod = "NONE"
+	TokenEndpointAuthenticationMethod_POST  TokenEndpointAuthenticationMethod = "POST"
 )
 
 type TopicState string
@@ -169,4 +252,13 @@ const (
 	VPCConnectionState_INACTIVE     VPCConnectionState = "INACTIVE"
 	VPCConnectionState_REJECTED     VPCConnectionState = "REJECTED"
 	VPCConnectionState_REJECTING    VPCConnectionState = "REJECTING"
+)
+
+type ValueConverter string
+
+const (
+	ValueConverter_BYTE_ARRAY      ValueConverter = "BYTE_ARRAY"
+	ValueConverter_JSON            ValueConverter = "JSON"
+	ValueConverter_JSON_SCHEMA_GSR ValueConverter = "JSON_SCHEMA_GSR"
+	ValueConverter_STRING          ValueConverter = "STRING"
 )

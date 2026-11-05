@@ -493,6 +493,39 @@ func (rm *resourceManager) updateMonitoring(
 			}
 			li.BrokerLogs = bl
 		}
+		if desired.ko.Spec.LoggingInfo.AuthorizerLogs != nil {
+			al := &svcsdktypes.AuthorizerLogs{}
+			if desired.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs != nil {
+				al.CloudWatchLogs = &svcsdktypes.CloudWatchLogs{
+					Enabled:  desired.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.Enabled,
+					LogGroup: desired.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs.LogGroup,
+				}
+			}
+			if desired.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose != nil {
+				al.Firehose = &svcsdktypes.Firehose{
+					Enabled:        desired.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.Enabled,
+					DeliveryStream: desired.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose.DeliveryStream,
+				}
+			}
+			if desired.ko.Spec.LoggingInfo.AuthorizerLogs.S3 != nil {
+				al.S3 = &svcsdktypes.S3{
+					Enabled: desired.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Enabled,
+					Bucket:  desired.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Bucket,
+					Prefix:  desired.ko.Spec.LoggingInfo.AuthorizerLogs.S3.Prefix,
+				}
+			}
+			li.AuthorizerLogs = al
+		}
+		// MSK's LoggingInfo requires BrokerLogs. When the user configures only
+		// authorizerLogs (no brokerLogs), send an explicit all-disabled
+		// BrokerLogs block so UpdateMonitoring satisfies the required member.
+		if li.BrokerLogs == nil {
+			li.BrokerLogs = &svcsdktypes.BrokerLogs{
+				CloudWatchLogs: &svcsdktypes.CloudWatchLogs{
+					Enabled: aws.Bool(false),
+				},
+			}
+		}
 		input.LoggingInfo = li
 	}
 	if desired.ko.Spec.OpenMonitoring != nil {
@@ -1075,16 +1108,42 @@ func customPreCompare(_ *ackcompare.Delta, a, b *resource) {
 	} else if b.ko.Spec.LoggingInfo == nil && loggingDisabled(a.ko.Spec.LoggingInfo) {
 		// AWS returned all targets disabled, semantically identical to user's nil.
 		a.ko.Spec.LoggingInfo = nil
-	} else if a.ko.Spec.LoggingInfo != nil && b.ko.Spec.LoggingInfo != nil &&
-		a.ko.Spec.LoggingInfo.BrokerLogs != nil && b.ko.Spec.LoggingInfo.BrokerLogs != nil {
-		if a.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs == nil {
-			a.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs = b.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs
+	} else if a.ko.Spec.LoggingInfo != nil && b.ko.Spec.LoggingInfo != nil {
+		// When the user configures only authorizerLogs, the controller sends
+		// an all-disabled BrokerLogs block on the wire (MSK requires it), so
+		// DescribeCluster returns a disabled BrokerLogs the user never set.
+		// Adopt the observed value so it is not read as a spurious diff that
+		// would re-trigger UpdateMonitoring on every reconcile.
+		if a.ko.Spec.LoggingInfo.BrokerLogs == nil &&
+			b.ko.Spec.LoggingInfo.BrokerLogs != nil &&
+			!logsGroupEnabled(
+				b.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs,
+				b.ko.Spec.LoggingInfo.BrokerLogs.Firehose,
+				b.ko.Spec.LoggingInfo.BrokerLogs.S3,
+			) {
+			a.ko.Spec.LoggingInfo.BrokerLogs = b.ko.Spec.LoggingInfo.BrokerLogs
 		}
-		if a.ko.Spec.LoggingInfo.BrokerLogs.Firehose == nil {
-			a.ko.Spec.LoggingInfo.BrokerLogs.Firehose = b.ko.Spec.LoggingInfo.BrokerLogs.Firehose
+		if a.ko.Spec.LoggingInfo.BrokerLogs != nil && b.ko.Spec.LoggingInfo.BrokerLogs != nil {
+			if a.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs == nil {
+				a.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs = b.ko.Spec.LoggingInfo.BrokerLogs.CloudWatchLogs
+			}
+			if a.ko.Spec.LoggingInfo.BrokerLogs.Firehose == nil {
+				a.ko.Spec.LoggingInfo.BrokerLogs.Firehose = b.ko.Spec.LoggingInfo.BrokerLogs.Firehose
+			}
+			if a.ko.Spec.LoggingInfo.BrokerLogs.S3 == nil {
+				a.ko.Spec.LoggingInfo.BrokerLogs.S3 = b.ko.Spec.LoggingInfo.BrokerLogs.S3
+			}
 		}
-		if a.ko.Spec.LoggingInfo.BrokerLogs.S3 == nil {
-			a.ko.Spec.LoggingInfo.BrokerLogs.S3 = b.ko.Spec.LoggingInfo.BrokerLogs.S3
+		if a.ko.Spec.LoggingInfo.AuthorizerLogs != nil && b.ko.Spec.LoggingInfo.AuthorizerLogs != nil {
+			if a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs == nil {
+				a.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs = b.ko.Spec.LoggingInfo.AuthorizerLogs.CloudWatchLogs
+			}
+			if a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose == nil {
+				a.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose = b.ko.Spec.LoggingInfo.AuthorizerLogs.Firehose
+			}
+			if a.ko.Spec.LoggingInfo.AuthorizerLogs.S3 == nil {
+				a.ko.Spec.LoggingInfo.AuthorizerLogs.S3 = b.ko.Spec.LoggingInfo.AuthorizerLogs.S3
+			}
 		}
 	}
 	if a.ko.Spec.EnhancedMonitoring == nil {
@@ -1127,20 +1186,33 @@ func customPostCompare(delta *ackcompare.Delta, a, b *resource) {
 }
 
 func loggingDisabled(li *svcapitypes.LoggingInfo) bool {
-	if li == nil || li.BrokerLogs == nil {
+	if li == nil {
 		return true
 	}
-	bl := li.BrokerLogs
-	if bl.CloudWatchLogs != nil && aws.ToBool(bl.CloudWatchLogs.Enabled) {
+	if bl := li.BrokerLogs; bl != nil && logsGroupEnabled(bl.CloudWatchLogs, bl.Firehose, bl.S3) {
 		return false
 	}
-	if bl.Firehose != nil && aws.ToBool(bl.Firehose.Enabled) {
-		return false
-	}
-	if bl.S3 != nil && aws.ToBool(bl.S3.Enabled) {
+	if al := li.AuthorizerLogs; al != nil && logsGroupEnabled(al.CloudWatchLogs, al.Firehose, al.S3) {
 		return false
 	}
 	return true
+}
+
+// logsGroupEnabled reports whether any destination in a LoggingInfo sub-block
+// (BrokerLogs or AuthorizerLogs, which share the same CloudWatch/Firehose/S3
+// shape) is explicitly enabled. The two blocks are structurally identical, so
+// this helper is parameterized over the fields they have in common.
+func logsGroupEnabled(cw *svcapitypes.CloudWatchLogs, fh *svcapitypes.Firehose, s3 *svcapitypes.S3) bool {
+	if cw != nil && aws.ToBool(cw.Enabled) {
+		return true
+	}
+	if fh != nil && aws.ToBool(fh.Enabled) {
+		return true
+	}
+	if s3 != nil && aws.ToBool(s3.Enabled) {
+		return true
+	}
+	return false
 }
 
 // vpcConnectivityDisabled returns true when every VPC connectivity auth scheme

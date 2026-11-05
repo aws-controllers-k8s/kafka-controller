@@ -31,6 +31,19 @@ type AmazonMskCluster struct {
 	MskClusterARN *string `json:"mskClusterARN,omitempty"`
 }
 
+// Details of an Apache Kafka Cluster.
+type ApacheKafkaCluster struct {
+	ApacheKafkaClusterID  *string `json:"apacheKafkaClusterID,omitempty"`
+	BootstrapBrokerString *string `json:"bootstrapBrokerString,omitempty"`
+}
+
+// The authorizer logs configuration for this MSK cluster.
+type AuthorizerLogs struct {
+	CloudWatchLogs *CloudWatchLogs `json:"cloudWatchLogs,omitempty"`
+	Firehose       *Firehose       `json:"firehose,omitempty"`
+	S3             *S3             `json:"s3,omitempty"`
+}
+
 // Specifies the EBS volume upgrade information. The broker identifier must
 // be set to the keyword ALL. This means the changes apply to all the brokers
 // in the cluster.
@@ -86,6 +99,36 @@ type BrokerSoftwareInfo struct {
 	ConfigurationARN      *string `json:"configurationARN,omitempty"`
 	ConfigurationRevision *int64  `json:"configurationRevision,omitempty"`
 	KafkaVersion          *string `json:"kafkaVersion,omitempty"`
+}
+
+// Configuration of the AWS Glue Data Catalog and S3 Tables warehouse used by
+// the Apache Iceberg destination.
+type Catalog struct {
+	CatalogARN        *string `json:"catalogARN,omitempty"`
+	WarehouseLocation *string `json:"warehouseLocation,omitempty"`
+}
+
+// Summary information about a channel returned by ListChannels.
+type ChannelInfo struct {
+	ChannelARN          *string      `json:"channelARN,omitempty"`
+	ChannelName         *string      `json:"channelName,omitempty"`
+	ClusterOperationARN *string      `json:"clusterOperationARN,omitempty"`
+	CreationTime        *metav1.Time `json:"creationTime,omitempty"`
+}
+
+// Configuration for the destinations to which the channel publishes operational
+// logs.
+type ChannelLoggingInfo struct {
+	CloudWatchLogs *CloudWatchLogs `json:"cloudWatchLogs,omitempty"`
+	Firehose       *Firehose       `json:"firehose,omitempty"`
+	S3             *S3             `json:"s3,omitempty"`
+}
+
+// Additional context for the current channel state, populated when the channel
+// is in FAILED.
+type ChannelStateInfo struct {
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
 }
 
 // Includes all client authentication information.
@@ -293,6 +336,20 @@ type ControllerNodeInfo struct {
 	Endpoints []*string `json:"endpoints,omitempty"`
 }
 
+// Configuration of the Amazon S3 bucket where records that fail to deliver
+// are stored.
+type DeadLetterQueueS3 struct {
+	BucketARN           *string `json:"bucketARN,omitempty"`
+	ErrorOutputPrefix   *string `json:"errorOutputPrefix,omitempty"`
+	ExpectedBucketOwner *string `json:"expectedBucketOwner,omitempty"`
+}
+
+// Configuration of an Apache Iceberg destination table.
+type DestinationTable struct {
+	DestinationDatabaseName *string `json:"destinationDatabaseName,omitempty"`
+	DestinationTableName    *string `json:"destinationTableName,omitempty"`
+}
+
 // Contains information about the EBS storage volumes attached to Apache Kafka
 // broker nodes.
 type EBSStorageInfo struct {
@@ -305,6 +362,11 @@ type EBSStorageInfo struct {
 // The data-volume encryption details.
 type EncryptionAtRest struct {
 	DataVolumeKMSKeyID *string `json:"dataVolumeKMSKeyID,omitempty"`
+}
+
+// The AWS KMS encryption configuration applied to data at rest.
+type EncryptionConfiguration struct {
+	KMSKeyARN *string `json:"kmsKeyARN,omitempty"`
 }
 
 // The settings for encrypting data in transit.
@@ -340,6 +402,18 @@ type IAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// Configuration of an Apache Iceberg destination for a channel.
+type IcebergDestinationConfiguration struct {
+	AppendOnly              *bool   `json:"appendOnly,omitempty"`
+	DataFreshnessInSeconds  *int64  `json:"dataFreshnessInSeconds,omitempty"`
+	ServiceExecutionRoleARN *string `json:"serviceExecutionRoleARN,omitempty"`
+}
+
+// Update payload for an Apache Iceberg destination.
+type IcebergDestinationUpdate struct {
+	DataFreshnessInSeconds *int64 `json:"dataFreshnessInSeconds,omitempty"`
+}
+
 // Indicates whether you want to turn on or turn off the JMX Exporter.
 type JmxExporter struct {
 	EnabledInBroker *bool `json:"enabledInBroker,omitempty"`
@@ -362,6 +436,46 @@ type KafkaClusterDescription struct {
 	KafkaClusterAlias *string `json:"kafkaClusterAlias,omitempty"`
 }
 
+// Details of encryption in transit to the Apache Kafka cluster.
+type KafkaClusterEncryptionInTransit struct {
+	RootCaCertificate *string `json:"rootCaCertificate,omitempty"`
+}
+
+// Details for mTLS client authentication.
+type KafkaClusterMTLSAuthentication struct {
+	SecretARN *string `json:"secretARN,omitempty"`
+}
+
+// Details for SASL/OAUTHBEARER using standard client_credentials grant.
+type KafkaClusterOAuthClientCredentials struct {
+	TokenRequestSecretARN *string `json:"tokenRequestSecretARN,omitempty"`
+}
+
+// Details for SASL/OAUTHBEARER using client credentials grant with JWT client
+// assertion.
+type KafkaClusterOAuthClientCredentialsAssertion struct {
+	Audience              *string `json:"audience,omitempty"`
+	TokenRequestSecretARN *string `json:"tokenRequestSecretARN,omitempty"`
+}
+
+// Details for SASL/OAUTHBEARER using JWT Bearer assertion grant.
+type KafkaClusterOAuthIAMJWTBearer struct {
+	Audience              *string `json:"audience,omitempty"`
+	TokenRequestSecretARN *string `json:"tokenRequestSecretARN,omitempty"`
+}
+
+// Details for SASL/OAUTHBEARER client authentication.
+type KafkaClusterSASLOAuthBearerAuthentication struct {
+	Scope                          *string `json:"scope,omitempty"`
+	TokenEndpoinTTLSCertificateARN *string `json:"tokenEndpoinTTLSCertificateARN,omitempty"`
+	TokenEndpointURL               *string `json:"tokenEndpointURL,omitempty"`
+}
+
+// Details for SASL/SCRAM client authentication.
+type KafkaClusterSASLSCRAMAuthentication struct {
+	SecretARN *string `json:"secretARN,omitempty"`
+}
+
 // Summarized information about Kafka Cluster used as source / target for replication.
 type KafkaClusterSummary struct {
 	KafkaClusterAlias *string `json:"kafkaClusterAlias,omitempty"`
@@ -372,7 +486,9 @@ type KafkaVersion struct {
 }
 
 type LoggingInfo struct {
-	BrokerLogs *BrokerLogs `json:"brokerLogs,omitempty"`
+	// The authorizer logs configuration for this MSK cluster.
+	AuthorizerLogs *AuthorizerLogs `json:"authorizerLogs,omitempty"`
+	BrokerLogs     *BrokerLogs     `json:"brokerLogs,omitempty"`
 }
 
 // Information about cluster attributes that can be updated via update APIs.
@@ -435,6 +551,11 @@ type OpenMonitoring struct {
 type OpenMonitoringInfo struct {
 	// Prometheus settings.
 	Prometheus *PrometheusInfo `json:"prometheus,omitempty"`
+}
+
+// A source column used by an Apache Iceberg destination table's partition specification.
+type PartitionSource struct {
+	SourceName *string `json:"sourceName,omitempty"`
 }
 
 // Prometheus settings.
@@ -543,11 +664,18 @@ type Rebalancing struct {
 	Status *string `json:"status,omitempty"`
 }
 
+// Schema configuration that controls how Apache Kafka record values are validated.
+type RecordSchema struct {
+	GsrARN *string `json:"gsrARN,omitempty"`
+}
+
 // Specifies configuration for replication between a source and target Kafka
 // cluster.
 type ReplicationInfo struct {
 	SourceKafkaClusterARN *string `json:"sourceKafkaClusterARN,omitempty"`
+	SourceKafkaClusterID  *string `json:"sourceKafkaClusterID,omitempty"`
 	TargetKafkaClusterARN *string `json:"targetKafkaClusterARN,omitempty"`
+	TargetKafkaClusterID  *string `json:"targetKafkaClusterID,omitempty"`
 }
 
 // Specifies configuration for replication between a source and target Kafka
@@ -569,6 +697,25 @@ type ReplicationStateInfo struct {
 	Message *string `json:"message,omitempty"`
 }
 
+// Details about delivering logs to CloudWatch Logs.
+type ReplicatorCloudWatchLogs struct {
+	Enabled  *bool   `json:"enabled,omitempty"`
+	LogGroup *string `json:"logGroup,omitempty"`
+}
+
+// Details about delivering logs to Firehose.
+type ReplicatorFirehose struct {
+	DeliveryStream *string `json:"deliveryStream,omitempty"`
+	Enabled        *bool   `json:"enabled,omitempty"`
+}
+
+// Details about delivering logs to S3.
+type ReplicatorS3 struct {
+	Bucket  *string `json:"bucket,omitempty"`
+	Enabled *bool   `json:"enabled,omitempty"`
+	Prefix  *string `json:"prefix,omitempty"`
+}
+
 // Information about a replicator.
 type ReplicatorSummary struct {
 	CreationTime          *metav1.Time `json:"creationTime,omitempty"`
@@ -585,6 +732,25 @@ type S3 struct {
 	Prefix  *string `json:"prefix,omitempty"`
 }
 
+// Configuration of an Amazon S3 destination for a channel.
+type S3DestinationConfiguration struct {
+	DataFreshnessInSeconds  *int64  `json:"dataFreshnessInSeconds,omitempty"`
+	ServiceExecutionRoleARN *string `json:"serviceExecutionRoleARN,omitempty"`
+}
+
+// Update payload for an Amazon S3 destination.
+type S3DestinationUpdate struct {
+	DataFreshnessInSeconds *int64 `json:"dataFreshnessInSeconds,omitempty"`
+}
+
+// Storage configuration for an Amazon S3 destination bucket.
+type S3Storage struct {
+	BucketARN           *string `json:"bucketARN,omitempty"`
+	ExpectedBucketOwner *string `json:"expectedBucketOwner,omitempty"`
+	OutputKeyTemplate   *string `json:"outputKeyTemplate,omitempty"`
+	OutputPrefix        *string `json:"outputPrefix,omitempty"`
+}
+
 // Details for client authentication using SASL.
 type SASL struct {
 	// Details for IAM access control.
@@ -596,6 +762,12 @@ type SASL struct {
 // Details for SASL/SCRAM client authentication.
 type SCRAM struct {
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Configuration controlling whether the Apache Iceberg destination table's
+// schema is evolved as incoming records change.
+type SchemaEvolution struct {
+	EnableSchemaEvolution *bool `json:"enableSchemaEvolution,omitempty"`
 }
 
 // Serverless cluster.
@@ -653,6 +825,17 @@ type StorageInfo struct {
 type TLS struct {
 	CertificateAuthorityARNList []*string `json:"certificateAuthorityARNList,omitempty"`
 	Enabled                     *bool     `json:"enabled,omitempty"`
+}
+
+// Configuration controlling whether MSK creates the destination Apache Iceberg
+// table if it does not already exist.
+type TableCreation struct {
+	EnableTableCreation *bool `json:"enableTableCreation,omitempty"`
+}
+
+// Configuration of an Apache Kafka topic that feeds a channel.
+type TopicConfiguration struct {
+	TopicARN *string `json:"topicARN,omitempty"`
 }
 
 // Includes identification info about the topic.
@@ -765,6 +948,11 @@ type VPCConnectivitySCRAM struct {
 
 // Details for TLS client authentication for VPC connectivity.
 type VPCConnectivityTLS struct {
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// Access control settings for zookeeper
+type ZookeeperAccess struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
