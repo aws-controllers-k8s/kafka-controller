@@ -60,18 +60,23 @@ var (
 // requeueWaitUntilCanModify returns a `ackrequeue.RequeueNeededAfter` struct
 // explaining the cluster cannot be modified until it reaches an ACTIVE status.
 func requeueWaitUntilCanModify(r *resource) *ackrequeue.RequeueNeededAfter {
-	if r.ko.Status.State == nil {
-		return nil
-	}
-	state := *r.ko.Status.State
 	msg := fmt.Sprintf(
 		"Cluster in '%s' state, cannot be modified until '%s'.",
-		state, string(svcsdktypes.ClusterStateActive),
+		getState(r.ko.Status.State), string(svcsdktypes.ClusterStateActive),
 	)
 	return ackrequeue.NeededAfter(
 		errors.New(msg),
 		ackrequeue.DefaultRequeueAfterDuration,
 	)
+}
+
+// getState returns the cluster state, or "Unknown" when the API has not
+// reported one yet.
+func getState(state *string) string {
+	if state == nil {
+		return "Unknown"
+	}
+	return *state
 }
 
 // clusterHasTerminalStatus returns whether the supplied cluster is in a
@@ -152,7 +157,7 @@ func (rm *resourceManager) customUpdate(
 	updatedRes.ko.Status = latest.ko.Status
 
 	if !clusterActive(latest) {
-		msg := "Cluster is in '" + *latest.ko.Status.State + "' state"
+		msg := "Cluster is in '" + getState(latest.ko.Status.State) + "' state"
 		ackcondition.SetSynced(updatedRes, corev1.ConditionFalse, &msg, nil)
 		if clusterHasTerminalStatus(latest) {
 			ackcondition.SetTerminal(updatedRes, corev1.ConditionTrue, &msg, nil)

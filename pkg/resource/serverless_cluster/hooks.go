@@ -61,13 +61,9 @@ var (
 // requeueWaitUntilCanModify returns a `ackrequeue.RequeueNeededAfter` struct
 // explaining the cluster cannot be modified until it reaches an ACTIVE status.
 func requeueWaitUntilCanModify(r *resource) *ackrequeue.RequeueNeededAfter {
-	if r.ko.Status.State == nil {
-		return nil
-	}
-	state := *r.ko.Status.State
 	msg := fmt.Sprintf(
 		"Cluster in '%s' state, cannot be modified until '%s'.",
-		state, string(svcsdktypes.ClusterStateActive),
+		getState(r.ko.Status.State), string(svcsdktypes.ClusterStateActive),
 	)
 	return ackrequeue.NeededAfter(
 		errors.New(msg),
